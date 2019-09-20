@@ -65,20 +65,20 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     nextOuter: Point, nextOuterIndex: number, newPrevious: Point
   let innerJoin: boolean = true
   for (let i = 1; i < pointsIndexSize; i++) {
-    // console.log()
-    // console.log(i)
+    console.log()
+    console.log(i)
     // find the perpendicular lines
     // corner case where previousNormal needs to be flipped due to zig-zag
     newPrevious = getPerpendicularVector(points[i - 1], points[i], points[i + 1])
-    if (newPrevious[0] !== previousNormal[0]) {
-      previousNormal = newPrevious //
+    if (newPrevious[0] !== previousNormal[0] || newPrevious[1] !== previousNormal[1]) {
+      previousNormal = newPrevious
       const temp = previousInnerIndex
       previousInnerIndex = previousOuterIndex
       previousOuterIndex = temp
     }
     nextNormal = getPerpendicularVector(points[i + 1], points[i], points[i - 1])
-    // console.log('previousNormal', previousNormal)
-    // console.log('nextNormal', nextNormal)
+    console.log('previousNormal', previousNormal)
+    console.log('nextNormal', nextNormal)
     // find the currentInner normal
     currentInner = getMiddleInnerPoint(points[i], points[i - 1], previousNormal, nextNormal, width)
     // create the currentOuter point and index (same no matter what)
@@ -201,14 +201,10 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
 }
 
 function getPerpendicularVector (point: Point, nextPoint: Point, anchor?: Point): Point {
-  // console.log('** GET PERP **')
   let dx = point[0] - nextPoint[0]
   let dy = point[1] - nextPoint[1]
   const mag = Math.sqrt(dx * dx + dy * dy) // magnitude
 
-  // console.log('dx', dx)
-  // console.log('dy', dy)
-  // console.log('mag', mag)
   if (anchor) {
     if (isLeft(point, anchor, nextPoint)) { // if left rotate vector 90 deg clockwise
       dx = -dx
@@ -217,10 +213,6 @@ function getPerpendicularVector (point: Point, nextPoint: Point, anchor?: Point)
     }
   } else if ((dx >= 0 && dy <= 0) || (dx <= 0 && dy >= 0)) dx = -dx
 
-  // console.log('dx after', dx)
-  // console.log('dy after', dy)
-  //
-  // console.log('** GET PERP **')
   return [dy / mag, dx / mag]
 }
 
@@ -289,16 +281,27 @@ function squareCap (vector: Point, innerIndex: number, outerIndex: number, width
 
 function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, width: number, vertices: Vertices, indices: Indices) {
   // get total angle between two indices
+  console.log('** ROUNDING **')
   const centerPointIndex = saveVertices(centerPoint, vertices)
   const inner = [vertices[innerIndex * 2], vertices[innerIndex * 2 + 1]]
   const outer = [vertices[outerIndex * 2], vertices[outerIndex * 2 + 1]]
   let startAngle = Math.atan2(inner[1] - centerPoint[1], inner[0] - centerPoint[0])
   let endAngle = Math.atan2(outer[1] - centerPoint[1], outer[0] - centerPoint[0])
-  if (startAngle < 0) startAngle += Math.PI * 2
-  if (endAngle <= 0) endAngle += Math.PI * 2
-  const angleDiff = Math.abs(endAngle - startAngle)
+  if (startAngle === endAngle) return
+  console.log('startAngle', startAngle)
+  console.log('endAngle', endAngle)
+  // if (startAngle < 0) startAngle += Math.PI * 2
+  // if (endAngle <= 0) endAngle += Math.PI * 2
+  console.log('centerPoint', centerPoint)
+  console.log('inner', inner)
+  console.log('outer', outer)
+  console.log('startAngle', startAngle)
+  console.log('endAngle', endAngle)
+  let angleDiff = endAngle - startAngle
+  if (angleDiff > Math.PI) angleDiff -= Math.PI * 2
+  else if (angleDiff < -Math.PI) angleDiff += Math.PI * 2
   // create the segment size
-  const segmentCount = ((width > 1) ? width : 1) * angleDiff * 6 >> 0
+  const segmentCount = ((width > 1) ? width : 1) * Math.abs(angleDiff) * 6 >> 0
   // now we have our increment size
   const angleIncrement = angleDiff / segmentCount
   // move down one after creating angleIncrement to ensure we don't reinput outterIndex
@@ -313,6 +316,18 @@ function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, w
     // update innerIndex as we revolve
     innerIndex = nextIndex
   }
+  console.log('__ ROUNDING __')
   // create the last triangle
   if (nextIndex) indices.push(centerPointIndex, nextIndex, outerIndex)
+}
+
+function isClockwise (center: Point, inner: Point, outer: Point): boolean {
+  const area = center[0] * inner[1] -
+    inner[0] * center[1] +
+    inner[0] * outer[1] -
+    outer[0] * inner[1] +
+    outer[0] * center[1] -
+    center[0] * outer[1]
+
+  return area > 0
 }
