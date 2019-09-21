@@ -43,8 +43,6 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     // create the previousOuter and previousOuter points
     previousInner = [points[0][0] - previousNormal[0] * width, points[0][1] - previousNormal[1] * width]
     previousOuter = [points[0][0] + previousNormal[0] * width, points[0][1] + previousNormal[1] * width]
-    // console.log('previousInner', previousInner)
-    // console.log('previousOuter', previousOuter)
     // save the points vertices
     previousInnerIndex = saveVertices(previousInner, vertices)
     previousOuterIndex = saveVertices(previousOuter, vertices)
@@ -53,7 +51,12 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       const capNormal = getPerpendicularVector(points[0], previousOuter)
       squareCap(capNormal, previousInnerIndex, previousOuterIndex, width, vertices, indices)
     } else if (cap === 'round') {
-      rounding(points[0], previousInnerIndex, previousOuterIndex, width, vertices, indices)
+      // // find our perpendicular vectors (turns out to be flat for ends)
+      // NOTE: this is a bit of a hack, but it's computationally cheap so...
+      const dx = points[1][0] - points[0][0]
+      const dy = points[1][1] - points[0][1]
+      const pos = (dy > 0 && dx < 0) ? false : (dx > 0 || dy > 0) ? true : false
+      rounding(points[0], previousInnerIndex, previousOuterIndex, previousInner, previousOuter, width, vertices, indices, pos)
     }
   } else { // we need to create a join piece between second of last point and second point using the first as the middle
 
@@ -65,8 +68,6 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     nextOuter: Point, nextOuterIndex: number, newPrevious: Point
   let innerJoin: boolean = true
   for (let i = 1; i < pointsIndexSize; i++) {
-    console.log()
-    console.log(i)
     // find the perpendicular lines
     // corner case where previousNormal needs to be flipped due to zig-zag
     newPrevious = getPerpendicularVector(points[i - 1], points[i], points[i + 1])
@@ -77,17 +78,12 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       previousOuterIndex = temp
     }
     nextNormal = getPerpendicularVector(points[i + 1], points[i], points[i - 1])
-    console.log('previousNormal', previousNormal)
-    console.log('nextNormal', nextNormal)
     // find the currentInner normal
     currentInner = getMiddleInnerPoint(points[i], points[i - 1], previousNormal, nextNormal, width)
     // create the currentOuter point and index (same no matter what)
     currentOuter = [points[i][0] + previousNormal[0] * width, points[i][1] + previousNormal[1] * width]
     currentOuterIndex = saveVertices(currentOuter, vertices)
-    // console.log('currentInner', currentInner)
-    // console.log('currentOuter', currentOuter)
     if (currentInner) {
-      // console.log('current exists')
       // save current index
       currentInnerIndex = saveVertices(currentInner, vertices)
       // save the indices
@@ -107,12 +103,9 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
         currentOuterIndex, currentInnerIndex, previousOuterIndex
       )
     }
-    // console.log('currentInner2', currentInner)
-    // console.log('currentOuter2', currentOuter)
     // create the join
     // create the nextOuter point and index
     nextOuter = [points[i][0] + nextNormal[0] * width, points[i][1] + nextNormal[1] * width]
-    // console.log('nextOuter', nextOuter)
     // edge case: straight line, don't create a join, update values and move on
     if (nextOuter[0] === currentInner[0] && nextOuter[1] === currentInner[1]) {
       previousInner = currentInner
@@ -131,9 +124,8 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
           currentInnerIndex, currentPointIndex, nextOuterIndex
         )
       }
-      rounding(points[i], currentOuterIndex, nextOuterIndex, width, vertices, indices)
+      rounding(points[i], currentOuterIndex, nextOuterIndex, currentOuter, nextOuter, width, vertices, indices)
     } else {
-      // console.log('points[i]', points[i])
       if (!innerJoin) currentInnerIndex = saveVertices(points[i], vertices)
       indices.push(currentInnerIndex, currentOuterIndex, nextOuterIndex)
       if (join === 'miter') {
@@ -141,7 +133,6 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       }
     }
     if (!innerJoin) {
-      // console.log('INNER JOIN')
       // lastly recompute currentInner to currentOuter
       currentInner = [points[i][0] - nextNormal[0] * width, points[i][1] - nextNormal[1] * width]
       currentInnerIndex = saveVertices(currentInner, vertices)
@@ -159,42 +150,37 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   // lastly save the last middle and the end cap if a non closed loop
   // if the line is not closed, we finished the middle with a flat end
   if (!closed) {
-    // console.log()
-    // console.log('END')
-    // console.log('previousNormal', previousNormal)
     // compute the last normal
     nextNormal = getPerpendicularVector(points[pointsIndexSize], points[pointsIndexSize - 1], points[pointsIndexSize - 2])
-    // console.log('nextNormal', nextNormal)
-    // get the current inner from the normal
+    // get the current inner and outer from the normal
     currentInner = [points[pointsIndexSize][0] - nextNormal[0] * width, points[pointsIndexSize][1] - nextNormal[1] * width]
-    currentInnerIndex = saveVertices(currentInner, vertices)
-    // get the "outer" which is the same just opposite direction
     currentOuter = [points[pointsIndexSize][0] + nextNormal[0] * width, points[pointsIndexSize][1] + nextNormal[1] * width]
+    // store them and retrieve indexes
+    currentInnerIndex = saveVertices(currentInner, vertices)
     currentOuterIndex = saveVertices(currentOuter, vertices)
-    // console.log('C previousOuter', [vertices[previousOuterIndex * 2], vertices[previousOuterIndex * 2 + 1]])
-    // console.log('C previousInner', [vertices[previousInnerIndex * 2], vertices[previousInnerIndex * 2 + 1]])
-    // console.log('C currentInner', [vertices[currentInnerIndex * 2], vertices[currentInnerIndex * 2 + 1]])
-    // console.log('C currentOuter', [vertices[currentOuterIndex * 2], vertices[currentOuterIndex * 2 + 1]])
     // edge case: straight line
     if (previousNormal[0] === -nextNormal[0] && previousNormal[1] === -nextNormal[1]) {
-      const temp = currentInnerIndex
-      currentInnerIndex = currentOuterIndex
-      currentOuterIndex = temp
+      indices.push(
+        previousOuterIndex, currentOuterIndex, previousInnerIndex,
+        currentInnerIndex, currentOuterIndex, previousOuterIndex
+      )
+    } else {
+      indices.push(
+        previousOuterIndex, currentInnerIndex, previousInnerIndex,
+        currentOuterIndex, currentInnerIndex, previousOuterIndex
+      )
     }
-    // save the indexes
-    indices.push(
-      previousOuterIndex, currentInnerIndex, previousInnerIndex,
-      currentOuterIndex, currentInnerIndex, previousOuterIndex
-    )
-    // create the end cap
     if (cap === 'square') {
       const capNormal = getPerpendicularVector(points[pointsIndexSize], currentInner)
       squareCap(capNormal, currentInnerIndex, currentOuterIndex, width, vertices, indices)
     } else if (cap === 'round') {
-      rounding(points[pointsIndexSize], currentOuterIndex, currentInnerIndex, width, vertices, indices)
+      const dx = points[pointsIndexSize - 1][0] - points[pointsIndexSize][0]
+      const dy = points[pointsIndexSize - 1][1] - points[pointsIndexSize][1]
+      const pos = (dx > 0 && dy <= 0) ? true : (dx >= 0 && dy > 0) ? true : false
+      rounding(points[pointsIndexSize], currentOuterIndex, currentInnerIndex, currentOuter, currentInner, width, vertices, indices, pos)
     }
   } else { // closed
-
+    // TODO
   }
 
   return { vertices, indices }
@@ -211,7 +197,7 @@ function getPerpendicularVector (point: Point, nextPoint: Point, anchor?: Point)
     } else { // rotate vector 90 deg counter-clockwise
       dy = -dy
     }
-  } else if ((dx >= 0 && dy <= 0) || (dx <= 0 && dy >= 0)) dx = -dx
+  } else { dy = -dy }
 
   return [dy / mag, dx / mag]
 }
@@ -227,14 +213,11 @@ function saveVertices (point: Point, vertices: Vertices): number {
 }
 
 function getMiddleInnerPoint (currentPoint: Point, previousPoint: Point, previousNormal: Point, nextNormal: Point, width: number): null | Point {
-  // console.log('** GET MIDDLE **')
   // find the vector in the middle of the two normals (add them together) and reverse it to create new normal
   const normal = [-(previousNormal[0] + nextNormal[0]), -(previousNormal[1] + nextNormal[1])]
   if (normal[0] === 0 && normal[1] === 0) { // if a line, just use the previous outer normal reversing the direction
-    // console.log('** GET MIDDLE 180 DEG **')
     return [currentPoint[0] - previousNormal[0] * width, currentPoint[1] - previousNormal[1] * width]
   }
-  // console.log('normal', normal)
   // otherwise we have to find the intersect of the normal unit vector with the
   // previousInner paired with vector from previous to current
   const previousInner = [previousPoint[0] - previousNormal[0] * width, previousPoint[1] - previousNormal[1] * width]
@@ -245,15 +228,12 @@ function getMiddleInnerPoint (currentPoint: Point, previousPoint: Point, previou
     currentPoint[0], currentPoint[1], // line2 point1
     currentPoint[0] + normal[0], currentPoint[1] + normal[1] // line2 point2
   )
-
   // if the intersect point is further away from the currentPointNormal than the currentPreviousNormal
   if (Math.abs(intersect[0] - currentPreviousNormal[0]) > Math.abs(previousInner[0] - currentPreviousNormal[0]) ||
   Math.abs(intersect[1] - currentPreviousNormal[1]) > Math.abs(previousInner[1] - currentPreviousNormal[1])) {
-    // console.log('** GET MIDDLE NULL **')
     return null
   }
 
-  // console.log('** GET MIDDLE **')
   // taking that new vector, multiply  (create unit vector) and multiply by width and add to point
   return intersect
 }
@@ -279,27 +259,20 @@ function squareCap (vector: Point, innerIndex: number, outerIndex: number, width
   )
 }
 
-function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, width: number, vertices: Vertices, indices: Indices) {
+function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, inner: Point, outer: Point, width: number, vertices: Vertices, indices: Indices, posDirection?: boolean = false) {
   // get total angle between two indices
-  console.log('** ROUNDING **')
   const centerPointIndex = saveVertices(centerPoint, vertices)
-  const inner = [vertices[innerIndex * 2], vertices[innerIndex * 2 + 1]]
-  const outer = [vertices[outerIndex * 2], vertices[outerIndex * 2 + 1]]
   let startAngle = Math.atan2(inner[1] - centerPoint[1], inner[0] - centerPoint[0])
   let endAngle = Math.atan2(outer[1] - centerPoint[1], outer[0] - centerPoint[0])
   if (startAngle === endAngle) return
-  console.log('startAngle', startAngle)
-  console.log('endAngle', endAngle)
-  // if (startAngle < 0) startAngle += Math.PI * 2
-  // if (endAngle <= 0) endAngle += Math.PI * 2
-  console.log('centerPoint', centerPoint)
-  console.log('inner', inner)
-  console.log('outer', outer)
-  console.log('startAngle', startAngle)
-  console.log('endAngle', endAngle)
+  const pi = +((Math.PI).toPrecision(5))
   let angleDiff = endAngle - startAngle
-  if (angleDiff > Math.PI) angleDiff -= Math.PI * 2
-  else if (angleDiff < -Math.PI) angleDiff += Math.PI * 2
+  const angleDiffCompare = +((angleDiff).toPrecision(5))
+  // join is ALWAYS an acute angle, so if we don't see that, we are looking building on the wrong side
+  if (angleDiffCompare > pi) angleDiff -= Math.PI * 2
+  else if (angleDiffCompare < -pi) angleDiff += Math.PI * 2
+  // however, if its and endcap, just swap if posDirection says so
+  else if (posDirection) angleDiff = -angleDiff
   // create the segment size
   const segmentCount = ((width > 1) ? width : 1) * Math.abs(angleDiff) * 6 >> 0
   // now we have our increment size
@@ -316,18 +289,6 @@ function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, w
     // update innerIndex as we revolve
     innerIndex = nextIndex
   }
-  console.log('__ ROUNDING __')
   // create the last triangle
   if (nextIndex) indices.push(centerPointIndex, nextIndex, outerIndex)
-}
-
-function isClockwise (center: Point, inner: Point, outer: Point): boolean {
-  const area = center[0] * inner[1] -
-    inner[0] * center[1] +
-    inner[0] * outer[1] -
-    outer[0] * inner[1] +
-    outer[0] * center[1] -
-    center[0] * outer[1]
-
-  return area > 0
 }
