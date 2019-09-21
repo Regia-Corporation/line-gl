@@ -32,8 +32,7 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   const miterLimit: number = (attributes.miterLimit && attributes.miterLimit < 15) ? attributes.miterLimit : 10
   const vertices: Vertices = []
   const indices: Indices = []
-  // const closed = (points[0][0] === points[pointsIndexSize][0] && points[0][1] === points[pointsIndexSize][1]) ? true : false
-  const closed = false
+  const closed = (points[0][0] === points[pointsIndexSize][0] && points[0][1] === points[pointsIndexSize][1]) ? true : false
   // prep the initial inner and outer points/indexes and create caps if necessary
   let previousOuter: Point, previousInner: Point, previousNormal: Point,
     nextNormal: Point, previousOuterIndex: number, previousInnerIndex: number
@@ -59,11 +58,21 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       rounding(points[0], previousInnerIndex, previousOuterIndex, previousInner, previousOuter, width, vertices, indices, pos)
     }
   } else { // we need to create a join piece between second of last point and second point using the first as the middle
+    previousNormal = getPerpendicularVector(points[pointsIndexSize], points[0], points[1])
+    nextNormal = getPerpendicularVector(points[0], points[1], points[2])
+    // create the previousOuter and previousOuter points
+    previousInner = [points[pointsIndexSize][0] - previousNormal[0] * width, points[pointsIndexSize][1] - previousNormal[1] * width]
+    previousOuter = [points[pointsIndexSize][0] + previousNormal[0] * width, points[pointsIndexSize][1] + previousNormal[1] * width]
+    // save the points vertices
+    previousInnerIndex = saveVertices(previousInner, vertices)
+    previousOuterIndex = saveVertices(previousOuter, vertices)
 
+    // lastly update previous normal to current
+    previousNormal = nextNormal
   }
 
   // now iterate through all the points until last, creating triangles as we go
-  let currentInner: Point, currentInnerIndex: number, currentOuter: Point,
+  let currentInner: null | Point, currentInnerIndex: number, currentOuter: Point,
     currentPointIndex: number, currentOuterIndex: number,
     nextOuter: Point, nextOuterIndex: number, newPrevious: Point
   let innerJoin: boolean = true
@@ -265,12 +274,11 @@ function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, i
   let startAngle = Math.atan2(inner[1] - centerPoint[1], inner[0] - centerPoint[0])
   let endAngle = Math.atan2(outer[1] - centerPoint[1], outer[0] - centerPoint[0])
   if (startAngle === endAngle) return
-  const pi = +((Math.PI).toPrecision(5))
   let angleDiff = endAngle - startAngle
-  const angleDiffCompare = +((angleDiff).toPrecision(5))
   // join is ALWAYS an acute angle, so if we don't see that, we are looking building on the wrong side
-  if (angleDiffCompare > pi) angleDiff -= Math.PI * 2
-  else if (angleDiffCompare < -pi) angleDiff += Math.PI * 2
+  // EPSILON is 0.0001, this is to ensure lossy numbers don't screw up the rounding
+  if (angleDiff > Math.PI - 0.0001) angleDiff -= Math.PI * 2
+  else if (angleDiff < -Math.PI + 0.0001) angleDiff += Math.PI * 2
   // however, if its and endcap, just swap if posDirection says so
   else if (posDirection) angleDiff = -angleDiff
   // create the segment size

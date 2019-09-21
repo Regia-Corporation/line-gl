@@ -3,3 +3,5 @@ test
 featureCollections
 backup
 test
+test.js
+out.json
