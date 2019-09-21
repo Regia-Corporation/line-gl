@@ -277,8 +277,8 @@ function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, i
   let angleDiff = endAngle - startAngle
   // join is ALWAYS an acute angle, so if we don't see that, we are looking building on the wrong side
   // EPSILON is 0.0001, this is to ensure lossy numbers don't screw up the rounding
-  if (angleDiff > Math.PI - 0.0001) angleDiff -= Math.PI * 2
-  else if (angleDiff < -Math.PI + 0.0001) angleDiff += Math.PI * 2
+  if (angleDiff > Math.PI + 0.0001) angleDiff -= Math.PI * 2
+  else if (angleDiff < -Math.PI - 0.0001) angleDiff += Math.PI * 2
   // however, if its and endcap, just swap if posDirection says so
   else if (posDirection) angleDiff = -angleDiff
   // create the segment size

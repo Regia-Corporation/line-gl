@@ -41,14 +41,14 @@ const featureCollection = {
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0]], { width: 0.5, join: 'round', cap: 'round' })
 
 
-const data = drawLine([[0, 0], [-1, 0]], { width: 0.5, join: 'round', cap: 'round' })
+// const data = drawLine([[0, 0], [-1, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [1, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [0, -1]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [0, 1]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [1, 1]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [-1, -1]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [-1, 1]], { width: 0.5, join: 'round', cap: 'round' })
-// const data = drawLine([[0, 0], [1, -1]], { width: 0.5, join: 'round', cap: 'round' })
+const data = drawLine([[0, 0], [1, -1]], { width: 0.5, join: 'round', cap: 'round' })
 const { vertices, indices } = data
 
 
