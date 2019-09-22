@@ -32,14 +32,14 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   const miterLimit: number = (attributes.miterLimit && attributes.miterLimit < 15) ? attributes.miterLimit : 10
   const vertices: Vertices = []
   const indices: Indices = []
+  let innerJoin: boolean = true
   const closed = (points[0][0] === points[pointsIndexSize][0] && points[0][1] === points[pointsIndexSize][1]) ? true : false
   // prep the initial inner and outer points/indexes and create caps if necessary
   let previousOuter: Point, previousInner: Point, previousNormal: Point,
-    nextNormal: Point, previousOuterIndex: number, previousInnerIndex: number
-  let currentInner: null | Point, currentInnerIndex: number, currentOuter: Point,
+    nextNormal: Point, previousOuterIndex: number, previousInnerIndex: number,
+    currentInner: null | Point, currentInnerIndex: number, currentOuter: Point,
     currentPointIndex: number, currentOuterIndex: number,
     nextOuter: Point, nextOuterIndex: number, newPrevious: Point
-  let innerJoin: boolean = true
   if (!closed) {
     // find our perpendicular vectors (turns out to be flat for ends)
     previousNormal = getPerpendicularVector(points[0], points[1], points[2])
