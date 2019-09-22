@@ -68,12 +68,9 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     // find inner if it exists
     currentInner = getMiddleInnerPoint(points[0], points[pointsIndexSize - 1], previousNormal, nextNormal, width)
     currentOuter = [points[0][0] + nextNormal[0] * width, points[0][1] + nextNormal[1] * width]
-    // TODO: What if its a 180 straight line between
     if (currentInner) {
-      currentInnerIndex = saveVertices(currentInner, vertices)
-      currentOuterIndex = saveVertices(currentOuter, vertices)
-      previousInnerIndex = currentInnerIndex
-      previousOuterIndex = currentOuterIndex
+      previousInnerIndex = saveVertices(currentInner, vertices)
+      previousOuterIndex = saveVertices(currentOuter, vertices)
     } else { // angle too sharp for currentInner
       // create the previousOuter and previousOuter points
       previousInner = [points[0][0] - nextNormal[0] * width, points[0][1] - nextNormal[1] * width]
@@ -287,7 +284,7 @@ function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, i
   let endAngle = Math.atan2(outer[1] - centerPoint[1], outer[0] - centerPoint[0])
   if (startAngle === endAngle) return
   let angleDiff = endAngle - startAngle
-  // join is ALWAYS an acute angle, so if we don't see that, we are looking building on the wrong side
+  // join is ALWAYS an acute angle, so if we don't see that, we are building on the wrong side
   // EPSILON is 0.0001, this is to ensure lossy numbers don't screw up the rounding
   if (angleDiff > Math.PI + 0.0001) angleDiff -= Math.PI * 2
   else if (angleDiff < -Math.PI - 0.0001) angleDiff += Math.PI * 2
