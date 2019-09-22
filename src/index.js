@@ -23,7 +23,7 @@ type Point = [number, number]
 
 export default function drawLine (points: Array<Point>, attributes?: Attributes = {}): null | Line {
   // trivial reject
-  const pointsIndexSize = points.length - 1
+  let pointsIndexSize = points.length - 1
   if (pointsIndexSize < 1) { return null }
   // prep values
   const cap: Cap = attributes.cap || 'butt'
@@ -36,6 +36,10 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   // prep the initial inner and outer points/indexes and create caps if necessary
   let previousOuter: Point, previousInner: Point, previousNormal: Point,
     nextNormal: Point, previousOuterIndex: number, previousInnerIndex: number
+  let currentInner: null | Point, currentInnerIndex: number, currentOuter: Point,
+    currentPointIndex: number, currentOuterIndex: number,
+    nextOuter: Point, nextOuterIndex: number, newPrevious: Point
+  let innerJoin: boolean = true
   if (!closed) {
     // find our perpendicular vectors (turns out to be flat for ends)
     previousNormal = getPerpendicularVector(points[0], points[1], points[2])
@@ -57,29 +61,38 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       const pos = (dy > 0 && dx < 0) ? false : (dx > 0 || dy > 0) ? true : false
       rounding(points[0], previousInnerIndex, previousOuterIndex, previousInner, previousOuter, width, vertices, indices, pos)
     }
-  } else { // we need to create a join piece between second of last point and second point using the first as the middle
-    previousNormal = getPerpendicularVector(points[pointsIndexSize], points[0], points[1])
+  } else { // add an extra point so that the loop does the first join for us (at the end). Start at the beginning angle
+    // create normals
+    previousNormal = getPerpendicularVector(points[pointsIndexSize - 1], points[0], points[1])
     nextNormal = getPerpendicularVector(points[0], points[1], points[2])
-    // create the previousOuter and previousOuter points
-    previousInner = [points[pointsIndexSize][0] - previousNormal[0] * width, points[pointsIndexSize][1] - previousNormal[1] * width]
-    previousOuter = [points[pointsIndexSize][0] + previousNormal[0] * width, points[pointsIndexSize][1] + previousNormal[1] * width]
-    // save the points vertices
-    previousInnerIndex = saveVertices(previousInner, vertices)
-    previousOuterIndex = saveVertices(previousOuter, vertices)
-
-    // lastly update previous normal to current
+    // find inner if it exists
+    currentInner = getMiddleInnerPoint(points[0], points[pointsIndexSize - 1], previousNormal, nextNormal, width)
+    currentOuter = [points[0][0] + nextNormal[0] * width, points[0][1] + nextNormal[1] * width]
+    // TODO: What if its a 180 straight line between
+    if (currentInner) {
+      currentInnerIndex = saveVertices(currentInner, vertices)
+      currentOuterIndex = saveVertices(currentOuter, vertices)
+      previousInnerIndex = currentInnerIndex
+      previousOuterIndex = currentOuterIndex
+    } else { // angle too sharp for currentInner
+      // create the previousOuter and previousOuter points
+      previousInner = [points[0][0] - nextNormal[0] * width, points[0][1] - nextNormal[1] * width]
+      previousOuter = [points[0][0] + nextNormal[0] * width, points[0][1] + nextNormal[1] * width]
+      // save the points vertices
+      previousInnerIndex = saveVertices(previousInner, vertices)
+      previousOuterIndex = saveVertices(previousOuter, vertices)
+    }
+    // update previous normal
     previousNormal = nextNormal
+    // update points for loop to add last join
+    points.push(points[1])
+    pointsIndexSize++
   }
-
   // now iterate through all the points until last, creating triangles as we go
-  let currentInner: null | Point, currentInnerIndex: number, currentOuter: Point,
-    currentPointIndex: number, currentOuterIndex: number,
-    nextOuter: Point, nextOuterIndex: number, newPrevious: Point
-  let innerJoin: boolean = true
   for (let i = 1; i < pointsIndexSize; i++) {
     // find the perpendicular lines
-    // corner case where previousNormal needs to be flipped due to zig-zag
     newPrevious = getPerpendicularVector(points[i - 1], points[i], points[i + 1])
+    // corner case where previousNormal needs to be flipped due to zig-zag
     if (newPrevious[0] !== previousNormal[0] || newPrevious[1] !== previousNormal[1]) {
       previousNormal = newPrevious
       const temp = previousInnerIndex
@@ -141,6 +154,7 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
         // TODO
       }
     }
+    // update values to reflect new position
     if (!innerJoin) {
       // lastly recompute currentInner to currentOuter
       currentInner = [points[i][0] - nextNormal[0] * width, points[i][1] - nextNormal[1] * width]
@@ -188,8 +202,6 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       const pos = (dx > 0 && dy <= 0) ? true : (dx >= 0 && dy > 0) ? true : false
       rounding(points[pointsIndexSize], currentOuterIndex, currentInnerIndex, currentOuter, currentInner, width, vertices, indices, pos)
     }
-  } else { // closed
-    // TODO
   }
 
   return { vertices, indices }

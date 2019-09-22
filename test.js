@@ -30,7 +30,7 @@ const featureCollection = {
 
 
 
-// const data = drawLine([[-1, 1], [-1, -1], [1, -1], [1, 1]], { width: 0.5, join: 'round', cap: 'round' })
+const data = drawLine([[-1, 1], [-1, -1], [1, -1], [1, 1], [-1, 1]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[-1, 0], [0, 0], [1, 0], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // SQUARE END CAP FAILING
 // const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], { width: 0.5, join: 'round', cap: 'round' })
@@ -48,7 +48,7 @@ const featureCollection = {
 // const data = drawLine([[0, 0], [1, 1]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [-1, -1]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [-1, 1]], { width: 0.5, join: 'round', cap: 'round' })
-const data = drawLine([[0, 0], [1, -1]], { width: 0.5, join: 'round', cap: 'round' })
+// const data = drawLine([[0, 0], [1, -1]], { width: 0.5, join: 'round', cap: 'round' })
 const { vertices, indices } = data
 
 
@@ -60,6 +60,12 @@ const { vertices, indices } = data
 // console.log(data)
 
 for (let i = 0, il = indices.length; i < il; i += 3) {
+  if (!vertices[indices[i] * 2]) continue
+  if (!vertices[indices[i] * 2 + 1]) continue
+  if (!vertices[indices[i + 1] * 2]) continue
+  if (!vertices[indices[i + 1] * 2 + 1]) continue
+  if (!vertices[indices[i + 2] * 2]) continue
+  if (!vertices[indices[i + 2] * 2 + 1]) continue
   const feature = {
     type: 'Feature',
     properties: {},
