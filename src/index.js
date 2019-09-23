@@ -252,7 +252,7 @@ function getMiddleInnerPoint (currentPoint: Point, previousPoint: Point, previou
     return null
   }
 
-  // taking that new vector, multiply  (create unit vector) and multiply by width and add to point
+  // taking that new vector, multiply (create unit vector) and multiply by width and add to point
   return intersect
 }
 

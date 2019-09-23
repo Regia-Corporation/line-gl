@@ -9,9 +9,64 @@
 
 ## About
 
-**Create new modules with this skeleton**
+**Convert a line array to a triangle mesh. designed to be fast, efficient, and sphere capable.**
 
-https://coveralls.io/
+## Install
+
+```sh
+# Yarn
+yarn add line-gl
+# NPM
+npm install --save line-gl
+```
+
+## How to Use
+
+### Import
+
+```js
+// ES6
+import drawLine from './line-gl'
+// standard
+const drawLine = require('./lib').default
+```
+
+### Use
+
+```js
+const { vertices, indices } = drawLine([[-1, 1], [-1, -1], [1, -1], [1, 1]], { width: 0.5, join: 'bevel', cap: 'butt' })
+```
+
+
+## API
+
+### Function
+
+drawLine (points: Array<Point>, attributes?: Attributes = {}): null | Line
+
+# Types
+
+type Cap = 'butt' | 'square' | 'round'
+
+type Join = 'bevel' | 'miter' | 'round'
+
+type Attributes = {
+  cap?: Cap,
+  join?: Join,
+  width?: number,
+  miterLimit?: number
+}
+
+type Vertices = Array<number>
+
+type Indices = Array<number>
+
+type Line = {
+  vertices: Vertices,
+  indices: Indices
+}
+
+type Point = [number, number]
 
 ---
 
