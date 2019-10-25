@@ -21,7 +21,8 @@ export type Line = {
 
 type Point = [number, number]
 
-export default function drawLine (points: Array<Point>, attributes?: Attributes = {}): null | Line {
+// TODO: save in
+export default function drawLine (points: Array<Point>, attributes?: Attributes = {}, offset?: number = 0): null | Line {
   // trivial reject
   let pointsIndexSize = points.length - 1
   if (pointsIndexSize < 1) { return null }
@@ -52,14 +53,14 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     // create the first cap
     if (cap === 'square') {
       const capNormal = getPerpendicularVector(points[0], previousOuter)
-      squareCap(capNormal, previousInnerIndex, previousOuterIndex, width, vertices, indices)
+      squareCap(capNormal, previousInnerIndex, previousOuterIndex, width, vertices, indices, offset)
     } else if (cap === 'round') {
       // // find our perpendicular vectors (turns out to be flat for ends)
       // NOTE: this is a bit of a hack, but it's computationally cheap so...
       const dx = points[1][0] - points[0][0]
       const dy = points[1][1] - points[0][1]
       const pos = (dy > 0 && dx < 0) ? false : (dx > 0 || dy > 0) ? true : false
-      rounding(points[0], previousInnerIndex, previousOuterIndex, previousInner, previousOuter, width, vertices, indices, pos)
+      rounding(points[0], previousInnerIndex, previousOuterIndex, previousInner, previousOuter, width, vertices, indices, offset, pos)
     }
   } else { // add an extra point so that the loop does the first join for us (at the end). Start at the beginning angle
     // create normals
@@ -107,8 +108,8 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       currentInnerIndex = saveVertices(currentInner, vertices)
       // save the indices
       indices.push(
-        previousOuterIndex, currentInnerIndex, previousInnerIndex,
-        currentOuterIndex, currentInnerIndex, previousOuterIndex
+        previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
+        currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
       )
     } else { // the two points left and right are very close to eachother so the join looks different
       innerJoin = false
@@ -118,8 +119,8 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       currentInnerIndex = saveVertices(currentInner, vertices)
       // save the indices
       indices.push(
-        previousOuterIndex, currentInnerIndex, previousInnerIndex,
-        currentOuterIndex, currentInnerIndex, previousOuterIndex
+        previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
+        currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
       )
     }
     // create the join
@@ -139,14 +140,14 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       // create the two inner join triangles
       if (innerJoin) {
         indices.push(
-          currentInnerIndex, currentOuterIndex, currentPointIndex,
-          currentInnerIndex, currentPointIndex, nextOuterIndex
+          currentInnerIndex + offset, currentOuterIndex + offset, currentPointIndex + offset,
+          currentInnerIndex + offset, currentPointIndex + offset, nextOuterIndex + offset
         )
       }
-      rounding(points[i], currentOuterIndex, nextOuterIndex, currentOuter, nextOuter, width, vertices, indices)
+      rounding(points[i], currentOuterIndex, nextOuterIndex, currentOuter, nextOuter, width, vertices, indices, offset)
     } else {
       if (!innerJoin) currentInnerIndex = saveVertices(points[i], vertices)
-      indices.push(currentInnerIndex, currentOuterIndex, nextOuterIndex)
+      indices.push(currentInnerIndex + offset, currentOuterIndex + offset, nextOuterIndex + offset)
       if (join === 'miter') {
         // TODO
       }
@@ -181,23 +182,23 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     // edge case: straight line
     if (previousNormal[0] === -nextNormal[0] && previousNormal[1] === -nextNormal[1]) {
       indices.push(
-        previousOuterIndex, currentOuterIndex, previousInnerIndex,
-        currentInnerIndex, currentOuterIndex, previousOuterIndex
+        previousOuterIndex + offset, currentOuterIndex + offset, previousInnerIndex + offset,
+        currentInnerIndex + offset, currentOuterIndex + offset, previousOuterIndex + offset
       )
     } else {
       indices.push(
-        previousOuterIndex, currentInnerIndex, previousInnerIndex,
-        currentOuterIndex, currentInnerIndex, previousOuterIndex
+        previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
+        currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
       )
     }
     if (cap === 'square') {
       const capNormal = getPerpendicularVector(points[pointsIndexSize], currentInner)
-      squareCap(capNormal, currentInnerIndex, currentOuterIndex, width, vertices, indices)
+      squareCap(capNormal, currentInnerIndex, currentOuterIndex, width, vertices, indices, offset)
     } else if (cap === 'round') {
       const dx = points[pointsIndexSize - 1][0] - points[pointsIndexSize][0]
       const dy = points[pointsIndexSize - 1][1] - points[pointsIndexSize][1]
       const pos = (dx > 0 && dy <= 0) ? true : (dx >= 0 && dy > 0) ? true : false
-      rounding(points[pointsIndexSize], currentOuterIndex, currentInnerIndex, currentOuter, currentInner, width, vertices, indices, pos)
+      rounding(points[pointsIndexSize], currentOuterIndex, currentInnerIndex, currentOuter, currentInner, width, vertices, indices, offset, pos)
     }
   }
 
@@ -263,7 +264,7 @@ function lineIntersect (x1: number, y1: number, x2: number, y2: number, x3: numb
   return [x1 + ua * (x2 - x1), y1 + ua * (y2 - y1)]
 }
 
-function squareCap (vector: Point, innerIndex: number, outerIndex: number, width: number, vertices: Vertices, indices: Indices) {
+function squareCap (vector: Point, innerIndex: number, outerIndex: number, width: number, vertices: Vertices, indices: Indices, offset: number) {
   // create the next 2 points
   const innerNext = [vertices[innerIndex * 2] + vector[0] * width, vertices[innerIndex * 2 + 1] + vector[1] * width]
   const outerNext = [vertices[outerIndex * 2] + vector[0] * width, vertices[outerIndex * 2 + 1] + vector[1] * width]
@@ -272,12 +273,12 @@ function squareCap (vector: Point, innerIndex: number, outerIndex: number, width
   const outerNextIndex = saveVertices(outerNext, vertices)
   // push the two triangles into the indices
   indices.push(
-    innerIndex, innerNextIndex, outerIndex,
-    outerIndex, innerNextIndex, outerNextIndex
+    innerIndex + offset, innerNextIndex + offset, outerIndex + offset,
+    outerIndex + offset, innerNextIndex + offset, outerNextIndex + offset
   )
 }
 
-function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, inner: Point, outer: Point, width: number, vertices: Vertices, indices: Indices, posDirection?: boolean = false) {
+function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, inner: Point, outer: Point, width: number, vertices: Vertices, indices: Indices, offset: number, posDirection?: boolean = false) {
   // get total angle between two indices
   const centerPointIndex = saveVertices(centerPoint, vertices)
   let startAngle = Math.atan2(inner[1] - centerPoint[1], inner[0] - centerPoint[0])
@@ -302,10 +303,10 @@ function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, i
       centerPoint[0] + width * Math.cos(startAngle + angleIncrement * i),
       centerPoint[1] + width * Math.sin(startAngle + angleIncrement * i)
     ], vertices)
-    indices.push(innerIndex, nextIndex, centerPointIndex)
+    indices.push(innerIndex + offset, nextIndex + offset, centerPointIndex + offset)
     // update innerIndex as we revolve
     innerIndex = nextIndex
   }
   // create the last triangle
-  if (nextIndex) indices.push(centerPointIndex, nextIndex, outerIndex)
+  if (nextIndex) indices.push(centerPointIndex + offset, nextIndex + offset, outerIndex + offset)
 }
