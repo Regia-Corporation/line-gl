@@ -11,13 +11,13 @@ export type Attributes = {
 
 export type Vertices = Array<number>
 
-export type Vectors = Array<number>
+export type Normals = Array<number>
 
 export type Indices = Array<number>
 
 export type Line = {
   vertices: Vertices,
-  normals: Vectors,
+  normals: Normals,
   indices: Indices
 }
 
@@ -33,7 +33,7 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   const join: Join = attributes.join || 'bevel'
   const miterLimit: number = (attributes.miterLimit && attributes.miterLimit < 15) ? attributes.miterLimit : 10
   const vertices: Vertices = []
-  const normals: Vectors = []
+  const normals: Normals = []
   const indices: Indices = []
   const closed = points[0][0] === points[pointsIndexSize][0] && points[0][1] === points[pointsIndexSize][1]
   // prep the initial inner and outer points/indexes and create caps if necessary
@@ -172,7 +172,7 @@ function isLeft (a: Point, b: Point, c: Point): boolean { // check point c again
   return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) > 0
 }
 
-function saveVertexVectorPair (point: Point, vector: Point, invert: boolean, vertices: Vertices, normals: Vectors): number {
+function saveVertexVectorPair (point: Point, vector: Point, invert: boolean, vertices: Vertices, normals: Normals): number {
   vertices.push(point[0], point[1])
   if (invert) normals.push(vector[0], vector[1])
   else normals.push(-vector[0], -vector[1])
@@ -192,7 +192,7 @@ function lineIntersect (x1: number, y1: number, x2: number, y2: number, x3: numb
   return [x1 + ua * (x2 - x1), y1 + ua * (y2 - y1)]
 }
 
-function squareCap (vector: Point, innerIndex: number, outerIndex: number, vertices: Vertices, normals: Vectors, indices: Indices, offset: number) {
+function squareCap (vector: Point, innerIndex: number, outerIndex: number, vertices: Vertices, normals: Normals, indices: Indices, offset: number) {
   // create the next 2 points
   const currentPoint = [vertices[innerIndex * 2], vertices[innerIndex * 2 + 1]]
   // build new "normals"
@@ -209,7 +209,7 @@ function squareCap (vector: Point, innerIndex: number, outerIndex: number, verti
 }
 
 function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, innerNormal: Point,
-  outerNormal: Point, vertices: Vertices, normals: Vectors, indices: Indices, offset: number, capNormal: Point) {
+  outerNormal: Point, vertices: Vertices, normals: Normals, indices: Indices, offset: number, capNormal: Point) {
   // store the center point
   const centerPointIndex = saveVertexVectorPair(centerPoint, [0, 0], false, vertices, normals)
   // get the angles of the two starting positions
