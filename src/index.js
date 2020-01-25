@@ -17,7 +17,6 @@ export type Indices = Array<number>
 
 export type Line = {
   vertices: Vertices,
-  normals: Normals,
   indices: Indices
 }
 
@@ -32,7 +31,6 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   const join: Join = attributes.join || 'bevel'
   const miterLimit: number = (attributes.miterLimit && attributes.miterLimit < 15) ? attributes.miterLimit : 10
   const vertices: Vertices = []
-  const normals: Normals = []
   const indices: Indices = []
   const closed = points[0][0] === points[pointsIndexSize][0] && points[0][1] === points[pointsIndexSize][1]
   // prep the initial inner and outer points/indexes and create caps if necessary
@@ -44,22 +42,22 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     // find our perpendicular normals (turns out to be flat for ends)
     previousNormal = getPerpendicularVector(points[0], points[1], points[2])
     // save the points vertices
-    previousInnerIndex = saveVertexVectorPair(points[0], previousNormal, true, vertices, normals)
-    previousOuterIndex = saveVertexVectorPair(points[0], previousNormal, false, vertices, normals)
+    previousInnerIndex = saveVertexVectorPair(points[0], previousNormal, true, vertices)
+    previousOuterIndex = saveVertexVectorPair(points[0], previousNormal, false, vertices)
     // create the first cap
     const capNormal = getVector(points[0], points[1])
     if (cap === 'square') {
-      squareCap(capNormal, previousInnerIndex, previousOuterIndex, vertices, normals, indices, offset)
+      squareCap(capNormal, previousInnerIndex, previousOuterIndex, vertices, indices, offset)
     } else if (cap === 'round') {
-      rounding(points[0], previousInnerIndex, previousOuterIndex, [-previousNormal[0], -previousNormal[1]], previousNormal, vertices, normals, indices, offset, capNormal)
+      rounding(points[0], previousInnerIndex, previousOuterIndex, [-previousNormal[0], -previousNormal[1]], previousNormal, vertices, indices, offset, capNormal)
     }
   } else { // add an extra point so that the loop does the first join for us (at the end). Start at the beginning angle
     // create normals
     previousNormal = getPerpendicularVector(points[pointsIndexSize - 1], points[0], points[1])
     nextNormal = getPerpendicularVector(points[0], points[1], points[2])
     // save the points vertices
-    previousInnerIndex = saveVertexVectorPair(points[0], nextNormal, true, vertices, normals)
-    previousOuterIndex = saveVertexVectorPair(points[0], nextNormal, false, vertices, normals)
+    previousInnerIndex = saveVertexVectorPair(points[0], nextNormal, true, vertices)
+    previousOuterIndex = saveVertexVectorPair(points[0], nextNormal, false, vertices)
     // update previous normal
     previousNormal = nextNormal
     // update points for loop to add last join
@@ -80,24 +78,24 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     // find the next normal
     nextNormal = getPerpendicularVector(points[i + 1], points[i], points[i - 1])
     // create the currentOuter point and index (same no matter what)
-    currentOuterIndex = saveVertexVectorPair(points[i], previousNormal, false, vertices, normals)
+    currentOuterIndex = saveVertexVectorPair(points[i], previousNormal, false, vertices)
     // save current index
-    currentInnerIndex = saveVertexVectorPair(points[i], previousNormal, true, vertices, normals)
+    currentInnerIndex = saveVertexVectorPair(points[i], previousNormal, true, vertices)
     // save the indices
     indices.push(
       previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
       currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
     )
     // create and store next inner and outer as well as middle point for join
-    nextOuterIndex = saveVertexVectorPair(points[i], nextNormal, false, vertices, normals)
-    nextInnerIndex = saveVertexVectorPair(points[i], nextNormal, true, vertices, normals)
+    nextOuterIndex = saveVertexVectorPair(points[i], nextNormal, false, vertices)
+    nextInnerIndex = saveVertexVectorPair(points[i], nextNormal, true, vertices)
     // edge case: if a straight line, don't create a join, update values and move on
     if (!isSameNormal(previousNormal, nextNormal)) {
       // create middle point
       if (join === 'round') {
-        rounding(points[i], currentInnerIndex, nextInnerIndex, [-previousNormal[0], -previousNormal[1]], [-nextNormal[0], -nextNormal[1]], vertices, normals, indices, offset)
+        rounding(points[i], currentInnerIndex, nextInnerIndex, [-previousNormal[0], -previousNormal[1]], [-nextNormal[0], -nextNormal[1]], vertices, indices, offset)
       } else {
-        currentPointIndex = saveVertexVectorPair(points[i], [0, 0], false, vertices, normals)
+        currentPointIndex = saveVertexVectorPair(points[i], [0, 0], false, vertices)
         indices.push(currentInnerIndex + offset, nextInnerIndex + offset, currentPointIndex + offset)
         if (join === 'miter') {
           // TODO
@@ -117,8 +115,8 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     // compute the last normal
     nextNormal = getPerpendicularVector(points[pointsIndexSize], points[pointsIndexSize - 1], points[pointsIndexSize - 2])
     // store them and retrieve indexes
-    currentInnerIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, true, vertices, normals)
-    currentOuterIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, false, vertices, normals)
+    currentInnerIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, true, vertices)
+    currentOuterIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, false, vertices)
     // edge case: straight line
     if (previousNormal[0] === -nextNormal[0] && previousNormal[1] === -nextNormal[1]) {
       indices.push(
@@ -134,14 +132,14 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     if (cap === 'square') {
       // TODO: vector between previous point and currrent
       const capNormal = getVector(points[pointsIndexSize], points[pointsIndexSize - 1])
-      squareCap(capNormal, currentInnerIndex, currentOuterIndex, vertices, normals, indices, offset)
+      squareCap(capNormal, currentInnerIndex, currentOuterIndex, vertices, indices, offset)
     } else if (cap === 'round') {
       const capNormal = getVector(points[pointsIndexSize], points[pointsIndexSize - 1])
-      rounding(points[pointsIndexSize], currentOuterIndex, currentInnerIndex, nextNormal, [-nextNormal[0], -nextNormal[1]], vertices, normals, indices, offset, capNormal)
+      rounding(points[pointsIndexSize], currentOuterIndex, currentInnerIndex, nextNormal, [-nextNormal[0], -nextNormal[1]], vertices, indices, offset, capNormal)
     }
   }
 
-  return { vertices, normals, indices }
+  return { vertices, indices }
 }
 
 function getVector (point: Point, nextPoint: Point): Point {
@@ -171,12 +169,12 @@ function isLeft (a: Point, b: Point, c: Point): boolean { // check point c again
   return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) > 0
 }
 
-function saveVertexVectorPair (point: Point, vector: Point, invert: boolean, vertices: Vertices, normals: Normals): number {
+function saveVertexVectorPair (point: Point, vector: Point, invert: boolean, vertices: Vertices): number {
   vertices.push(point[0], point[1])
-  if (invert) normals.push(vector[0], vector[1])
-  else normals.push(-vector[0], -vector[1])
+  if (invert) vertices.push(vector[0], vector[1])
+  else vertices.push(-vector[0], -vector[1])
 
-  return vertices.length / 2 - 1 // return the index at the first value (x)
+  return vertices.length / 4 - 1 // return the index at the first value (x)
 }
 
 function isSameNormal (previousNormal: Point, nextNormal: Point): boolean {
@@ -191,15 +189,15 @@ function lineIntersect (x1: number, y1: number, x2: number, y2: number, x3: numb
   return [x1 + ua * (x2 - x1), y1 + ua * (y2 - y1)]
 }
 
-function squareCap (vector: Point, innerIndex: number, outerIndex: number, vertices: Vertices, normals: Normals, indices: Indices, offset: number) {
+function squareCap (vector: Point, innerIndex: number, outerIndex: number, vertices: Vertices, indices: Indices, offset: number) {
   // create the next 2 points
-  const currentPoint = [vertices[innerIndex * 2], vertices[innerIndex * 2 + 1]]
+  const currentPoint = [vertices[innerIndex * 4], vertices[innerIndex * 4 + 1]]
   // build new "normals"
-  const newVectorInner = [vector[0] + normals[innerIndex * 2], vector[1] + normals[innerIndex * 2 + 1]]
-  const newVectorOuter = [vector[0] + normals[outerIndex * 2], vector[1] + normals[outerIndex * 2 + 1]]
+  const newVectorInner = [vector[0] + vertices[innerIndex * 4 + 2], vector[1] + vertices[innerIndex * 4 + 3]]
+  const newVectorOuter = [vector[0] + vertices[outerIndex * 4 + 2], vector[1] + vertices[outerIndex * 4 + 3]]
   // save the next two points
-  const innerNextIndex = saveVertexVectorPair(currentPoint, newVectorInner, false, vertices, normals)
-  const outerNextIndex = saveVertexVectorPair(currentPoint, newVectorOuter, false, vertices, normals)
+  const innerNextIndex = saveVertexVectorPair(currentPoint, newVectorInner, false, vertices)
+  const outerNextIndex = saveVertexVectorPair(currentPoint, newVectorOuter, false, vertices)
   // push the two triangles into the indices
   indices.push(
     innerIndex + offset, innerNextIndex + offset, outerIndex + offset,
@@ -208,9 +206,9 @@ function squareCap (vector: Point, innerIndex: number, outerIndex: number, verti
 }
 
 function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, innerNormal: Point,
-  outerNormal: Point, vertices: Vertices, normals: Normals, indices: Indices, offset: number, capNormal: Point) {
+  outerNormal: Point, vertices: Vertices, indices: Indices, offset: number, capNormal: Point) {
   // store the center point
-  const centerPointIndex = saveVertexVectorPair(centerPoint, [0, 0], false, vertices, normals)
+  const centerPointIndex = saveVertexVectorPair(centerPoint, [0, 0], false, vertices)
   // get the angles of the two starting positions
   let startAngle = Math.atan2(innerNormal[1], innerNormal[0])
   let endAngle = Math.atan2(outerNormal[1], outerNormal[0])
@@ -232,7 +230,7 @@ function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, i
   for (let i = 1; i < segmentCount; i++) {
     // create the next point in the triangle, the first will always have been created
     nextVector = [Math.cos(startAngle + angleIncrement * i), Math.sin(startAngle + angleIncrement * i)]
-    nextIndex = saveVertexVectorPair(centerPoint, nextVector, false, vertices, normals)
+    nextIndex = saveVertexVectorPair(centerPoint, nextVector, false, vertices)
     indices.push(innerIndex + offset, nextIndex + offset, centerPointIndex + offset)
     // update innerIndex as we revolve
     innerIndex = nextIndex
