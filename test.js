@@ -35,7 +35,7 @@ const featureCollectionInput = JSON.parse(fs.readFileSync('./featureCollections/
 // const data = drawLine([[-1, 0], [0, 0], [1, 0], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[1, -1], [1, 1], [-1, 1], [-1, -1]], { width: 0.5, join: 'round', cap: 'round' })
-const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { width: 0.5, join: 'round', cap: 'round' })
+const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { join: 'round', cap: 'round' })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0], [1, 1], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0]], { width: 0.5, join: 'round', cap: 'round' })
 
@@ -59,7 +59,7 @@ console.timeEnd('line')
 // console.log('vertices', vertices)
 // console.log('normals', normals)
 // console.log('indices', indices)
-const width = 0.25
+const width = 0.5
 
 // console.log(data)
 

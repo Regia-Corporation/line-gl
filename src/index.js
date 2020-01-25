@@ -23,7 +23,6 @@ export type Line = {
 
 type Point = [number, number]
 
-// TODO: save in
 export default function drawLine (points: Array<Point>, attributes?: Attributes = {}, offset?: number = 0): null | Line {
   // trivial reject
   let pointsIndexSize = points.length - 1
