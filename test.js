@@ -6,7 +6,7 @@ const featureCollection = {
   features: []
 }
 
-const australia = JSON.parse(fs.readFileSync('./featureCollections/australiaBetter.json', 'utf8'))
+const featureCollectionInput = JSON.parse(fs.readFileSync('./featureCollections/holesTest.json', 'utf8'))
 // australia.features = [australia.features[29]]
 // console.log('australia', australia)
 
@@ -35,7 +35,7 @@ const australia = JSON.parse(fs.readFileSync('./featureCollections/australiaBett
 // const data = drawLine([[-1, 0], [0, 0], [1, 0], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[1, -1], [1, 1], [-1, 1], [-1, -1]], { width: 0.5, join: 'round', cap: 'round' })
-// const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { width: 0.5, join: 'round', cap: 'round' })
+const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0], [1, 1], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0]], { width: 0.5, join: 'round', cap: 'round' })
 
@@ -52,7 +52,7 @@ const australia = JSON.parse(fs.readFileSync('./featureCollections/australiaBett
 
 
 console.time('line')
-// const data = drawLine(australia.features[0].geometry.coordinates[0], { width: 0.01, join: 'bevel', cap: 'butt' })
+// const data = drawLine(featureCollectionInput.features[0].geometry.coordinates[0], { width: 0.01, join: 'bevel', cap: 'butt' })
 const { vertices, normals, indices } = data
 console.timeEnd('line')
 

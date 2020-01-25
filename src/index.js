@@ -1,7 +1,7 @@
 // @flow
-type Cap = 'butt' | 'square' | 'round'
+export type Cap = 'butt' | 'square' | 'round'
 
-type Join = 'bevel' | 'miter' | 'round'
+export type Join = 'bevel' | 'miter' | 'round'
 
 export type Attributes = {
   cap?: Cap,
