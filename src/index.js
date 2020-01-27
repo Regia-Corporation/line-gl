@@ -34,6 +34,7 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   const vertices: Vertices = []
   const normals: Normals = []
   const indices: Indices = []
+  let ccw = true
   const closed = points[0][0] === points[pointsIndexSize][0] && points[0][1] === points[pointsIndexSize][1]
   // prep the initial inner and outer points/indexes and create caps if necessary
   let previousOuter: Point, previousInner: Point, previousNormal: Point,
@@ -79,15 +80,23 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     }
     // find the next normal
     nextNormal = getPerpendicularVector(points[i + 1], points[i], points[i - 1])
+    ccw = isCCW(points[i], previousNormal, nextNormal)
     // create the currentOuter point and index (same no matter what)
     currentOuterIndex = saveVertexVectorPair(points[i], previousNormal, false, vertices, normals)
     // save current index
     currentInnerIndex = saveVertexVectorPair(points[i], previousNormal, true, vertices, normals)
     // save the indices
-    indices.push(
-      previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
-      currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
-    )
+    if (!ccw) {
+      indices.push(
+        previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
+        currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
+      )
+    } else {
+      indices.push(
+        previousInnerIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset,
+        previousOuterIndex + offset, currentInnerIndex + offset, currentOuterIndex + offset
+      )
+    }
     // create and store next inner and outer as well as middle point for join
     nextOuterIndex = saveVertexVectorPair(points[i], nextNormal, false, vertices, normals)
     nextInnerIndex = saveVertexVectorPair(points[i], nextNormal, true, vertices, normals)
@@ -98,7 +107,9 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
         rounding(points[i], currentInnerIndex, nextInnerIndex, [-previousNormal[0], -previousNormal[1]], [-nextNormal[0], -nextNormal[1]], vertices, normals, indices, offset)
       } else {
         currentPointIndex = saveVertexVectorPair(points[i], [0, 0], false, vertices, normals)
-        indices.push(currentInnerIndex + offset, nextInnerIndex + offset, currentPointIndex + offset)
+        if (!ccw) {
+          indices.push(currentPointIndex + offset, nextInnerIndex + offset, currentInnerIndex + offset)
+        } else { indices.push(currentInnerIndex + offset, nextInnerIndex + offset, currentPointIndex + offset)  }
         if (join === 'miter') {
           // TODO
         }
@@ -120,16 +131,31 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
     currentInnerIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, true, vertices, normals)
     currentOuterIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, false, vertices, normals)
     // edge case: straight line
+    ccw = isCCW(points[pointsIndexSize], previousNormal, nextNormal)
     if (previousNormal[0] === -nextNormal[0] && previousNormal[1] === -nextNormal[1]) {
-      indices.push(
-        previousOuterIndex + offset, currentOuterIndex + offset, previousInnerIndex + offset,
-        currentInnerIndex + offset, currentOuterIndex + offset, previousOuterIndex + offset
-      )
+      if (ccw) {
+        indices.push(
+          previousInnerIndex + offset, currentOuterIndex + offset, previousOuterIndex + offset,
+          previousOuterIndex + offset, currentOuterIndex + offset, currentInnerIndex + offset
+        )
+      } else {
+        indices.push(
+          previousOuterIndex + offset, currentOuterIndex + offset, previousInnerIndex + offset,
+          currentInnerIndex + offset, currentOuterIndex + offset, previousOuterIndex + offset
+        )
+      }
     } else {
-      indices.push(
-        previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
-        currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
-      )
+      if (ccw) {
+        indices.push(
+          previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
+          currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
+        )
+      } else {
+        indices.push(
+          previousInnerIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset,
+          previousOuterIndex + offset, currentInnerIndex + offset, currentOuterIndex + offset
+        )
+      }
     }
     if (cap === 'square') {
       // TODO: vector between previous point and currrent
@@ -184,27 +210,28 @@ function isSameNormal (previousNormal: Point, nextNormal: Point): boolean {
   return false
 }
 
-function lineIntersect (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number) {
-  const denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
-  const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
-
-  return [x1 + ua * (x2 - x1), y1 + ua * (y2 - y1)]
-}
-
 function squareCap (vector: Point, innerIndex: number, outerIndex: number, vertices: Vertices, normals: Normals, indices: Indices, offset: number) {
   // create the next 2 points
   const currentPoint = [vertices[innerIndex * 2], vertices[innerIndex * 2 + 1]]
   // build new "normals"
   const newVectorInner = [vector[0] + normals[innerIndex * 2], vector[1] + normals[innerIndex * 2 + 1]]
   const newVectorOuter = [vector[0] + normals[outerIndex * 2], vector[1] + normals[outerIndex * 2 + 1]]
+  const ccw = isCCW(currentPoint, newVectorInner, newVectorOuter)
   // save the next two points
   const innerNextIndex = saveVertexVectorPair(currentPoint, newVectorInner, false, vertices, normals)
   const outerNextIndex = saveVertexVectorPair(currentPoint, newVectorOuter, false, vertices, normals)
   // push the two triangles into the indices
-  indices.push(
-    innerIndex + offset, innerNextIndex + offset, outerIndex + offset,
-    innerIndex + offset, innerNextIndex + offset, outerNextIndex + offset
-  )
+  if (ccw) {
+    indices.push(
+      // innerIndex + offset, innerNextIndex + offset, outerIndex + offset,
+      innerIndex + offset, innerNextIndex + offset, outerNextIndex + offset
+    )
+  } else {
+    indices.push(
+      // outerIndex + offset, innerNextIndex + offset, innerIndex + offset,
+      outerNextIndex + offset, innerNextIndex + offset, innerIndex + offset
+    )
+  }
 }
 
 function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, innerNormal: Point,
@@ -233,12 +260,25 @@ function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, i
     // create the next point in the triangle, the first will always have been created
     nextVector = [Math.cos(startAngle + angleIncrement * i), Math.sin(startAngle + angleIncrement * i)]
     nextIndex = saveVertexVectorPair(centerPoint, nextVector, false, vertices, normals)
-    indices.push(innerIndex + offset, nextIndex + offset, centerPointIndex + offset)
+    if (angleIncrement > 0) indices.push(innerIndex + offset, nextIndex + offset, centerPointIndex + offset)
+    else indices.push(nextIndex + offset, innerIndex + offset, centerPointIndex + offset)
     // update innerIndex as we revolve
     innerIndex = nextIndex
   }
   // create the last triangle
-  if (nextIndex) indices.push(centerPointIndex + offset, nextIndex + offset, outerIndex + offset)
+  if (nextIndex) {
+    if (angleIncrement > 0) indices.push(centerPointIndex + offset, nextIndex + offset, outerIndex + offset)
+    else indices.push(centerPointIndex + offset, outerIndex + offset, nextIndex + offset)
+  }
+}
+
+function isCCW (point: Point, prevNorm: Point, nextNorm: Point): boolean {
+  const p2 = [point[0] + prevNorm[0], point[1] + prevNorm[1]]
+  const p3 = [point[0] + nextNorm[0], point[1] + nextNorm[1]]
+  const val = (p2[1] - point[1]) * (p3[0] - p2[0]) - (p2[0] - point[0]) * (p3[1] - p2[1])
+
+  if (val === 0) return true // colinear
+  return (val > 0) ? false : true // clock or counterclock wise
 }
 
 function isBetween (a: number, b: number, num: number): boolean {

@@ -6,7 +6,7 @@ const featureCollection = {
   features: []
 }
 
-const featureCollectionInput = JSON.parse(fs.readFileSync('./featureCollections/holesTest.json', 'utf8'))
+// const featureCollectionInput = JSON.parse(fs.readFileSync('./featureCollections/holesTest.json', 'utf8'))
 // australia.features = [australia.features[29]]
 // console.log('australia', australia)
 
@@ -20,7 +20,8 @@ const featureCollectionInput = JSON.parse(fs.readFileSync('./featureCollections/
 // const data = drawLine([[-1, 1], [-1, -1], [1, -1], [1, 1]], { width: 0.5, join: 'bevel', cap: 'square' })
 // const data = drawLine([[-1, 0], [0, 0], [1, 0], [2, 0]], { width: 0.5, join: 'bevel', cap: 'butt' })
 // const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], { width: 0.5, join: 'bevel' })
-// const data = drawLine([[1, -1], [1, 1], [-1, 1], [-1, -1]], { width: 0.5, join: 'bevel', cap: 'square' })
+// TO FIX: SQAURE CAPS
+const data = drawLine([[1, -1], [1, 1], [-1, 1], [-1, -1]], { width: 0.5, join: 'bevel', cap: 'square' })
 
 // const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { width: 0.5, join: 'bevel', cap: 'square' })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0], [1, 1], [2, 0]], { width: 0.5, join: 'bevel', cap: 'butt' })
@@ -35,7 +36,9 @@ const featureCollectionInput = JSON.parse(fs.readFileSync('./featureCollections/
 // const data = drawLine([[-1, 0], [0, 0], [1, 0], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[1, -1], [1, 1], [-1, 1], [-1, -1]], { width: 0.5, join: 'round', cap: 'round' })
-const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { join: 'round', cap: 'round' })
+// TO FIX:
+// const data = drawLine([[1, -1], [1, 1], [-1, 1], [-1, -1]], { width: 0.5, join: 'bevel', cap: 'butt' })
+// const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { join: 'bevel', cap: 'butt' })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0], [1, 1], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0]], { width: 0.5, join: 'round', cap: 'round' })
 
@@ -96,7 +99,20 @@ for (let i = 0, il = indices.length; i < il; i += 3) {
     }
   }
 
+  const orient = orientation(feature)
+  feature.properties.orient = orient
+  if (orient === 1) console.log('CW')
+  // else console.log('OK')
+
   featureCollection.features.push(feature)
+}
+
+function orientation (feature) {
+  const [p1, p2, p3] = feature.geometry.coordinates[0]
+  const val = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1])
+
+  if (val === 0) return 0 // colinear
+  return (val > 0) ? 1 : 2 // clock or counterclock wise
 }
 
 fs.writeFileSync('./out.json', JSON.stringify(featureCollection, null, 2))

@@ -2,3 +2,4 @@ node_modules
 lib
 featureCollections
 backup
+out.json
