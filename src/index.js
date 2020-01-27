@@ -37,135 +37,151 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   let ccw = true
   const closed = points[0][0] === points[pointsIndexSize][0] && points[0][1] === points[pointsIndexSize][1]
   // prep the initial inner and outer points/indexes and create caps if necessary
-  let previousOuter: Point, previousInner: Point, previousNormal: Point,
-    nextNormal: Point, previousOuterIndex: number, previousInnerIndex: number,
-    currentInnerIndex: number, currentOuter: Point, currentPointIndex: number, currentOuterIndex: number,
-    nextOuter: Point, nextOuterIndex: number, newPrevious: Point, nextInnerIndex: Point
-  if (!closed) {
-    // find our perpendicular normals (turns out to be flat for ends)
-    previousNormal = getPerpendicularVector(points[0], points[1], points[2])
+  let curNormal: Point, nextNormal: Point, currInnerIndex: number,
+    currOuterIndex: number, nextInnerIndex: number, nextOuterIndex: number
+
+  // step 1: Just do the individual lines:
+  for (let i = 0; i < pointsIndexSize; i++) {
+    curNormal = getPerpendicularVector(points[i], points[i + 1])
+    nextNormal = getPerpendicularVector(points[i + 1], points[i])
     // save the points vertices
-    previousInnerIndex = saveVertexVectorPair(points[0], previousNormal, true, vertices, normals)
-    previousOuterIndex = saveVertexVectorPair(points[0], previousNormal, false, vertices, normals)
-    // create the first cap
-    const capNormal = getVector(points[0], points[1])
-    if (cap === 'square') {
-      squareCap(capNormal, previousInnerIndex, previousOuterIndex, vertices, normals, indices, offset)
-    } else if (cap === 'round') {
-      rounding(points[0], previousInnerIndex, previousOuterIndex, [-previousNormal[0], -previousNormal[1]], previousNormal, vertices, normals, indices, offset, capNormal)
-    }
-  } else { // add an extra point so that the loop does the first join for us (at the end). Start at the beginning angle
-    // create normals
-    previousNormal = getPerpendicularVector(points[pointsIndexSize - 1], points[0], points[1])
-    nextNormal = getPerpendicularVector(points[0], points[1], points[2])
-    // save the points vertices
-    previousInnerIndex = saveVertexVectorPair(points[0], nextNormal, true, vertices, normals)
-    previousOuterIndex = saveVertexVectorPair(points[0], nextNormal, false, vertices, normals)
-    // update previous normal
-    previousNormal = nextNormal
-    // update points for loop to add last join
-    points.push(points[1])
-    pointsIndexSize++
-  }
-  // now iterate through all the points until last, creating triangles as we go
-  for (let i = 1; i < pointsIndexSize; i++) {
-    // find the perpendicular lines
-    newPrevious = getPerpendicularVector(points[i - 1], points[i], points[i + 1])
-    // corner case where previousNormal needs to be flipped due to zig-zag
-    if (newPrevious[0] !== previousNormal[0] || newPrevious[1] !== previousNormal[1]) {
-      previousNormal = newPrevious
-      const temp = previousInnerIndex
-      previousInnerIndex = previousOuterIndex
-      previousOuterIndex = temp
-    }
-    // find the next normal
-    nextNormal = getPerpendicularVector(points[i + 1], points[i], points[i - 1])
-    ccw = isCCW(points[i], previousNormal, nextNormal)
-    // create the currentOuter point and index (same no matter what)
-    currentOuterIndex = saveVertexVectorPair(points[i], previousNormal, false, vertices, normals)
-    // save current index
-    currentInnerIndex = saveVertexVectorPair(points[i], previousNormal, true, vertices, normals)
-    // save the indices
-    if (!ccw) {
-      indices.push(
-        previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
-        currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
-      )
-    } else {
-      indices.push(
-        previousInnerIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset,
-        previousOuterIndex + offset, currentInnerIndex + offset, currentOuterIndex + offset
-      )
-    }
-    // create and store next inner and outer as well as middle point for join
-    nextOuterIndex = saveVertexVectorPair(points[i], nextNormal, false, vertices, normals)
-    nextInnerIndex = saveVertexVectorPair(points[i], nextNormal, true, vertices, normals)
-    // edge case: if a straight line, don't create a join, update values and move on
-    if (!isSameNormal(previousNormal, nextNormal)) {
-      // create middle point
-      if (join === 'round') {
-        rounding(points[i], currentInnerIndex, nextInnerIndex, [-previousNormal[0], -previousNormal[1]], [-nextNormal[0], -nextNormal[1]], vertices, normals, indices, offset)
-      } else {
-        currentPointIndex = saveVertexVectorPair(points[i], [0, 0], false, vertices, normals)
-        if (!ccw) {
-          indices.push(currentPointIndex + offset, nextInnerIndex + offset, currentInnerIndex + offset)
-        } else { indices.push(currentInnerIndex + offset, nextInnerIndex + offset, currentPointIndex + offset)  }
-        if (join === 'miter') {
-          // TODO
-        }
-      }
-    }
-    // update the "previous" values to the next ones as we move forward
-    previousInnerIndex = nextInnerIndex
-    previousOuterIndex = nextOuterIndex
-    // move previousNormal to nextNormal
-    previousNormal = nextNormal
+    currInnerIndex = saveVertexVectorPair(points[i], curNormal, true, vertices, normals)
+    currOuterIndex = saveVertexVectorPair(points[i], curNormal, false, vertices, normals)
+    nextInnerIndex = saveVertexVectorPair(points[i + 1], nextNormal, true, vertices, normals)
+    nextOuterIndex = saveVertexVectorPair(points[i + 1], nextNormal, false, vertices, normals)
+    // store points
+    indices.push(
+      currOuterIndex + offset, currInnerIndex + offset, nextOuterIndex + offset,
+      nextOuterIndex + offset, nextInnerIndex + offset, currOuterIndex + offset
+    )
   }
 
-  // lastly save the last middle and the end cap if a non closed loop
-  // if the line is not closed, we finished the middle with a flat end
-  if (!closed) {
-    // compute the last normal
-    nextNormal = getPerpendicularVector(points[pointsIndexSize], points[pointsIndexSize - 1], points[pointsIndexSize - 2])
-    // store them and retrieve indexes
-    currentInnerIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, true, vertices, normals)
-    currentOuterIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, false, vertices, normals)
-    // edge case: straight line
-    ccw = isCCW(points[pointsIndexSize], previousNormal, nextNormal)
-    if (previousNormal[0] === -nextNormal[0] && previousNormal[1] === -nextNormal[1]) {
-      if (ccw) {
-        indices.push(
-          previousInnerIndex + offset, currentOuterIndex + offset, previousOuterIndex + offset,
-          previousOuterIndex + offset, currentOuterIndex + offset, currentInnerIndex + offset
-        )
-      } else {
-        indices.push(
-          previousOuterIndex + offset, currentOuterIndex + offset, previousInnerIndex + offset,
-          currentInnerIndex + offset, currentOuterIndex + offset, previousOuterIndex + offset
-        )
-      }
-    } else {
-      if (ccw) {
-        indices.push(
-          previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
-          currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
-        )
-      } else {
-        indices.push(
-          previousInnerIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset,
-          previousOuterIndex + offset, currentInnerIndex + offset, currentOuterIndex + offset
-        )
-      }
-    }
-    if (cap === 'square') {
-      // TODO: vector between previous point and currrent
-      const capNormal = getVector(points[pointsIndexSize], points[pointsIndexSize - 1])
-      squareCap(capNormal, currentInnerIndex, currentOuterIndex, vertices, normals, indices, offset)
-    } else if (cap === 'round') {
-      const capNormal = getVector(points[pointsIndexSize], points[pointsIndexSize - 1])
-      rounding(points[pointsIndexSize], currentOuterIndex, currentInnerIndex, nextNormal, [-nextNormal[0], -nextNormal[1]], vertices, normals, indices, offset, capNormal)
-    }
-  }
+
+  // if (!closed) {
+  //   // find our perpendicular normals (turns out to be flat for ends)
+  //   previousNormal = getPerpendicularVector(points[0], points[1], points[2])
+  //   // save the points vertices
+  //   previousInnerIndex = saveVertexVectorPair(points[0], previousNormal, true, vertices, normals)
+  //   previousOuterIndex = saveVertexVectorPair(points[0], previousNormal, false, vertices, normals)
+  //   // create the first cap
+  //   const capNormal = getVector(points[0], points[1])
+  //   if (cap === 'square') {
+  //     squareCap(capNormal, previousInnerIndex, previousOuterIndex, vertices, normals, indices, offset)
+  //   } else if (cap === 'round') {
+  //     rounding(points[0], previousInnerIndex, previousOuterIndex, [-previousNormal[0], -previousNormal[1]], previousNormal, vertices, normals, indices, offset, capNormal)
+  //   }
+  // } else { // add an extra point so that the loop does the first join for us (at the end). Start at the beginning angle
+  //   // create normals
+  //   previousNormal = getPerpendicularVector(points[pointsIndexSize - 1], points[0], points[1])
+  //   nextNormal = getPerpendicularVector(points[0], points[1], points[2])
+  //   // save the points vertices
+  //   previousInnerIndex = saveVertexVectorPair(points[0], nextNormal, true, vertices, normals)
+  //   previousOuterIndex = saveVertexVectorPair(points[0], nextNormal, false, vertices, normals)
+  //   // update previous normal
+  //   previousNormal = nextNormal
+  //   // update points for loop to add last join
+  //   points.push(points[1])
+  //   pointsIndexSize++
+  // }
+  // // now iterate through all the points until last, creating triangles as we go
+  // for (let i = 1; i < pointsIndexSize; i++) {
+  //   // find the perpendicular lines
+  //   newPrevious = getPerpendicularVector(points[i - 1], points[i], points[i + 1])
+  //   // corner case where previousNormal needs to be flipped due to zig-zag
+  //   if (newPrevious[0] !== previousNormal[0] || newPrevious[1] !== previousNormal[1]) {
+  //     previousNormal = newPrevious
+  //     const temp = previousInnerIndex
+  //     previousInnerIndex = previousOuterIndex
+  //     previousOuterIndex = temp
+  //   }
+  //   // find the next normal
+  //   nextNormal = getPerpendicularVector(points[i + 1], points[i], points[i - 1])
+  //   ccw = isCCW(points[i], previousNormal, nextNormal)
+  //   // create the currentOuter point and index (same no matter what)
+  //   currentOuterIndex = saveVertexVectorPair(points[i], previousNormal, false, vertices, normals)
+  //   // save current index
+  //   currentInnerIndex = saveVertexVectorPair(points[i], previousNormal, true, vertices, normals)
+  //   // save the indices
+  //   if (!ccw) {
+  //     indices.push(
+  //       previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
+  //       currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
+  //     )
+  //   } else {
+  //     indices.push(
+  //       previousInnerIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset,
+  //       previousOuterIndex + offset, currentInnerIndex + offset, currentOuterIndex + offset
+  //     )
+  //   }
+  //   // create and store next inner and outer as well as middle point for join
+  //   nextOuterIndex = saveVertexVectorPair(points[i], nextNormal, false, vertices, normals)
+  //   nextInnerIndex = saveVertexVectorPair(points[i], nextNormal, true, vertices, normals)
+  //   // edge case: if a straight line, don't create a join, update values and move on
+  //   if (!isSameNormal(previousNormal, nextNormal)) {
+  //     // create middle point
+  //     if (join === 'round') {
+  //       rounding(points[i], currentInnerIndex, nextInnerIndex, [-previousNormal[0], -previousNormal[1]], [-nextNormal[0], -nextNormal[1]], vertices, normals, indices, offset)
+  //     } else {
+  //       currentPointIndex = saveVertexVectorPair(points[i], [0, 0], false, vertices, normals)
+  //       if (!ccw) {
+  //         indices.push(currentPointIndex + offset, nextInnerIndex + offset, currentInnerIndex + offset)
+  //       } else { indices.push(currentInnerIndex + offset, nextInnerIndex + offset, currentPointIndex + offset)  }
+  //       if (join === 'miter') {
+  //         // TODO
+  //       }
+  //     }
+  //   }
+  //   // update the "previous" values to the next ones as we move forward
+  //   previousInnerIndex = nextInnerIndex
+  //   previousOuterIndex = nextOuterIndex
+  //   // move previousNormal to nextNormal
+  //   previousNormal = nextNormal
+  // }
+  //
+  // // lastly save the last middle and the end cap if a non closed loop
+  // // if the line is not closed, we finished the middle with a flat end
+  // if (!closed) {
+  //   // compute the last normal
+  //   nextNormal = getPerpendicularVector(points[pointsIndexSize], points[pointsIndexSize - 1], points[pointsIndexSize - 2])
+  //   // store them and retrieve indexes
+  //   currentInnerIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, true, vertices, normals)
+  //   currentOuterIndex = saveVertexVectorPair(points[pointsIndexSize], nextNormal, false, vertices, normals)
+  //   // edge case: straight line
+  //   ccw = isCCW(points[pointsIndexSize], previousNormal, nextNormal)
+  //   if (previousNormal[0] === -nextNormal[0] && previousNormal[1] === -nextNormal[1]) {
+  //     if (ccw) {
+  //       indices.push(
+  //         previousInnerIndex + offset, currentOuterIndex + offset, previousOuterIndex + offset,
+  //         previousOuterIndex + offset, currentOuterIndex + offset, currentInnerIndex + offset
+  //       )
+  //     } else {
+  //       indices.push(
+  //         previousOuterIndex + offset, currentOuterIndex + offset, previousInnerIndex + offset,
+  //         currentInnerIndex + offset, currentOuterIndex + offset, previousOuterIndex + offset
+  //       )
+  //     }
+  //   } else {
+  //     if (ccw) {
+  //       indices.push(
+  //         previousOuterIndex + offset, currentInnerIndex + offset, previousInnerIndex + offset,
+  //         currentOuterIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset
+  //       )
+  //     } else {
+  //       indices.push(
+  //         previousInnerIndex + offset, currentInnerIndex + offset, previousOuterIndex + offset,
+  //         previousOuterIndex + offset, currentInnerIndex + offset, currentOuterIndex + offset
+  //       )
+  //     }
+  //   }
+  //   if (cap === 'square') {
+  //     // TODO: vector between previous point and currrent
+  //     const capNormal = getVector(points[pointsIndexSize], points[pointsIndexSize - 1])
+  //     squareCap(capNormal, currentInnerIndex, currentOuterIndex, vertices, normals, indices, offset)
+  //   } else if (cap === 'round') {
+  //     const capNormal = getVector(points[pointsIndexSize], points[pointsIndexSize - 1])
+  //     rounding(points[pointsIndexSize], currentOuterIndex, currentInnerIndex, nextNormal, [-nextNormal[0], -nextNormal[1]], vertices, normals, indices, offset, capNormal)
+  //   }
+  // }
 
   return { vertices, normals, indices }
 }
@@ -177,20 +193,12 @@ function getVector (point: Point, nextPoint: Point): Point {
   return [dx / mag, dy / mag]
 }
 
-function getPerpendicularVector (point: Point, nextPoint: Point, anchor?: Point): Point {
+function getPerpendicularVector (point: Point, nextPoint: Point): Point {
   let dx = point[0] - nextPoint[0]
   let dy = point[1] - nextPoint[1]
   const mag = Math.sqrt(dx * dx + dy * dy) // magnitude
 
-  if (anchor) {
-    if (isLeft(point, anchor, nextPoint)) { // if left rotate vector 90 deg clockwise
-      dx = -dx
-    } else { // rotate vector 90 deg counter-clockwise
-      dy = -dy
-    }
-  } else { dy = -dy }
-
-  return [dy / mag, dx / mag]
+  return [-dy / mag, dx / mag]
 }
 
 function isLeft (a: Point, b: Point, c: Point): boolean { // check point c against line a to b
