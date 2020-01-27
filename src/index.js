@@ -73,8 +73,8 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       rounding(points[i], currIndex, prevIndex, nextIndex, prevNormal, nextNormal, vertices, normals, indices, offset)
     } else { // bevel
       // bevel is a guarentee
-      if (ccw) indices.push(prevIndex, nextIndex, currIndex)
-      else indices.push(currIndex, nextIndex, prevIndex)
+      if (ccw) indices.push(prevIndex + offset, nextIndex + offset, currIndex + offset)
+      else indices.push(currIndex + offset, nextIndex + offset, prevIndex + offset)
       // TODO
       if (join === 'miter') {
 
