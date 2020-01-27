@@ -34,11 +34,12 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   const vertices: Vertices = []
   const normals: Normals = []
   const indices: Indices = []
-  let ccw = true
   const closed = points[0][0] === points[pointsIndexSize][0] && points[0][1] === points[pointsIndexSize][1]
   // prep the initial inner and outer points/indexes and create caps if necessary
-  let curNormal: Point, nextNormal: Point, currInnerIndex: number,
-    currOuterIndex: number, nextInnerIndex: number, nextOuterIndex: number
+  let ccw: boolean, curNormal: Point, nextNormal: Point, currInnerIndex: number,
+    currOuterIndex: number, nextInnerIndex: number, nextOuterIndex: number,
+    prevNormal: Point, currIndex: number, prevIndex: number,
+    nextIndex: number
 
   // step 1: Just do the individual lines:
   for (let i = 0; i < pointsIndexSize; i++) {
@@ -54,6 +55,18 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
       currOuterIndex + offset, currInnerIndex + offset, nextOuterIndex + offset,
       nextOuterIndex + offset, nextInnerIndex + offset, currOuterIndex + offset
     )
+  }
+
+  // Step 2: Edges
+  for (let i = 1; i < pointsIndexSize; i++) {
+    const ccw = isCCW(points[i - 1], points[i], points[i + 1])
+    prevNormal = getPerpendicularVector(points[i], points[i - 1])
+    nextNormal = getPerpendicularVector(points[i + 1], points[i])
+    currIndex = saveVertexVectorPair(points[i], [0, 0], true, vertices, normals)
+    prevIndex = saveVertexVectorPair(points[i], prevNormal, !ccw, vertices, normals)
+    nextIndex = saveVertexVectorPair(points[i], nextNormal, !ccw, vertices, normals)
+    if (ccw) indices.push(prevIndex, nextIndex, currIndex)
+    else indices.push(currIndex, nextIndex, prevIndex)
   }
 
 
@@ -186,19 +199,19 @@ export default function drawLine (points: Array<Point>, attributes?: Attributes 
   return { vertices, normals, indices }
 }
 
-function getVector (point: Point, nextPoint: Point): Point {
-  let dx = nextPoint[0] - point[0]
-  let dy = nextPoint[1] - point[1]
-  const mag = Math.sqrt(dx * dx + dy * dy) // magnitude
-  return [dx / mag, dy / mag]
-}
-
 function getPerpendicularVector (point: Point, nextPoint: Point): Point {
   let dx = point[0] - nextPoint[0]
   let dy = point[1] - nextPoint[1]
   const mag = Math.sqrt(dx * dx + dy * dy) // magnitude
 
   return [-dy / mag, dx / mag]
+}
+
+function getVector (point: Point, nextPoint: Point): Point {
+  let dx = nextPoint[0] - point[0]
+  let dy = nextPoint[1] - point[1]
+  const mag = Math.sqrt(dx * dx + dy * dy) // magnitude
+  return [dx / mag, dy / mag]
 }
 
 function isLeft (a: Point, b: Point, c: Point): boolean { // check point c against line a to b
@@ -280,10 +293,8 @@ function rounding (centerPoint: Point, innerIndex: number, outerIndex: number, i
   }
 }
 
-function isCCW (point: Point, prevNorm: Point, nextNorm: Point): boolean {
-  const p2 = [point[0] + prevNorm[0], point[1] + prevNorm[1]]
-  const p3 = [point[0] + nextNorm[0], point[1] + nextNorm[1]]
-  const val = (p2[1] - point[1]) * (p3[0] - p2[0]) - (p2[0] - point[0]) * (p3[1] - p2[1])
+function isCCW (p1: Point, p2: Point, p3: Point): boolean {
+  const val = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1])
 
   if (val === 0) return true // colinear
   return (val > 0) ? false : true // clock or counterclock wise
