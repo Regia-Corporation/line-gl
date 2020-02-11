@@ -31,7 +31,7 @@ const featureCollection = {
 // const data = drawLine([[-1, 0], [0, 0], [1, 0], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[1, -1], [1, 1], [-1, 1], [-1, -1]], { width: 0.5, join: 'round', cap: 'round' })
-const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { join: 'round', cap: 'round' })
+const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { join: 'bevel', cap: 'butt', dashed: true })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0], [1, 1], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0]], { width: 0.5, join: 'round', cap: 'round' })
 
@@ -47,12 +47,14 @@ const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { join: 'round'
 
 console.time('line')
 // const data = drawLine(featureCollectionInput.features[0].geometry.coordinates[0], { width: 0.01, join: 'bevel', cap: 'butt' })
-const { vertices, indices } = data
+const { vertices, indices, normals, lengthSoFar } = data
 console.timeEnd('line')
 
-// console.log('vertices', vertices)
-// console.log('normals', normals)
-// console.log('indices', indices)
+console.log('vertices', vertices)
+console.log('normals', normals)
+console.log('indices', indices)
+console.log('lengthSoFar', lengthSoFar)
+console.log('vertices.length', vertices.length)
 const width = 0.5
 
 // console.log(data)
@@ -82,10 +84,10 @@ for (let i = 0, il = indices.length; i < il; i += 3) {
     geometry: {
       type: 'Polygon',
       coordinates: [[
-        [vertices[indices[i] * 4] + width * vertices[indices[i] * 4 + 2], vertices[indices[i] * 4 + 1] + width * vertices[indices[i] * 4 + 3]],
-        [vertices[indices[i + 1] * 4] + width * vertices[indices[i + 1] * 4 + 2], vertices[indices[i + 1] * 4 + 1] + width * vertices[indices[i + 1] * 4 + 3]],
-        [vertices[indices[i + 2] * 4] + width * vertices[indices[i + 2] * 4 + 2], vertices[indices[i + 2] * 4 + 1] + width * vertices[indices[i + 2] * 4 + 3]],
-        [vertices[indices[i] * 4] + width * vertices[indices[i] * 4 + 2], vertices[indices[i] * 4 + 1] + width * vertices[indices[i] * 4 + 3]]
+        [vertices[indices[i] * 4] + width * normals[indices[i] * 4], vertices[indices[i] * 4 + 1] + width * normals[indices[i] * 4 + 1]],
+        [vertices[indices[i + 1] * 4] + width * normals[indices[i + 1] * 4], vertices[indices[i + 1] * 4 + 1] + width * normals[indices[i + 1] * 4 + 1]],
+        [vertices[indices[i + 2] * 4] + width * normals[indices[i + 2] * 4], vertices[indices[i + 2] * 4 + 1] + width * normals[indices[i + 2] * 4 + 1]],
+        [vertices[indices[i] * 4] + width * normals[indices[i] * 4], vertices[indices[i] * 4 + 1] + width * normals[indices[i] * 4 + 1]]
       ]]
     }
   }
