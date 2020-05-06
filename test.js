@@ -29,13 +29,13 @@ const featureCollection = {
 // const data = drawLine([[-1, 0], [-0.9, 0]], { width: 0.5, join: 'bevel', cap: 'square' })
 // const data = drawLine([[0, 1], [-1, 1], [-1, -1], [1, -1], [1, 1], [0, 1]], { width: 0.5, join: 'bevel', cap: 'butt' })
 // const data = drawLine([[-1, 0], [0, 0], [1, 0], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
-// const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], { width: 0.5, join: 'round', cap: 'round' })
+const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[1, -1], [1, 1], [-1, 1], [-1, -1]], { width: 0.5, join: 'round', cap: 'round' })
-const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { join: 'bevel', cap: 'butt', dashed: true })
+// const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { join: 'bevel', cap: 'butt', dashed: true })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0], [1, 1], [2, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0]], { width: 0.5, join: 'round', cap: 'round' })
 
-// const data = drawLine([[0, 0], [-1, 0]], { width: 0.5, join: 'round', cap: 'round' })
+// const data = drawLine([[0, 0], [-1, 0]])
 // const data = drawLine([[0, 0], [1, 0]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [0, -1]], { width: 0.5, join: 'round', cap: 'round' })
 // const data = drawLine([[0, 0], [0, 1]], { width: 0.5, join: 'round', cap: 'round' })
@@ -55,7 +55,7 @@ console.log('normals', normals)
 console.log('indices', indices)
 console.log('lengthSoFar', lengthSoFar)
 console.log('vertices.length', vertices.length)
-const width = 0.5
+const width = 0.05
 
 // console.log(data)
 
@@ -84,10 +84,10 @@ for (let i = 0, il = indices.length; i < il; i += 3) {
     geometry: {
       type: 'Polygon',
       coordinates: [[
-        [vertices[indices[i] * 4] + width * normals[indices[i] * 4], vertices[indices[i] * 4 + 1] + width * normals[indices[i] * 4 + 1]],
-        [vertices[indices[i + 1] * 4] + width * normals[indices[i + 1] * 4], vertices[indices[i + 1] * 4 + 1] + width * normals[indices[i + 1] * 4 + 1]],
-        [vertices[indices[i + 2] * 4] + width * normals[indices[i + 2] * 4], vertices[indices[i + 2] * 4 + 1] + width * normals[indices[i + 2] * 4 + 1]],
-        [vertices[indices[i] * 4] + width * normals[indices[i] * 4], vertices[indices[i] * 4 + 1] + width * normals[indices[i] * 4 + 1]]
+        [vertices[indices[i] * 2] + width * normals[indices[i] * 2], vertices[indices[i] * 2 + 1] + width * normals[indices[i] * 2 + 1]],
+        [vertices[indices[i + 1] * 2] + width * normals[indices[i + 1] * 2], vertices[indices[i + 1] * 2 + 1] + width * normals[indices[i + 1] * 2 + 1]],
+        [vertices[indices[i + 2] * 2] + width * normals[indices[i + 2] * 2], vertices[indices[i + 2] * 2 + 1] + width * normals[indices[i + 2] * 2 + 1]],
+        [vertices[indices[i] * 2] + width * normals[indices[i] * 2], vertices[indices[i] * 2 + 1] + width * normals[indices[i] * 2 + 1]]
       ]]
     }
   }
