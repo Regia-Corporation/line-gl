@@ -173,7 +173,7 @@ function getVector (point: Point, nextPoint: Point, perpendicular: boolean = tru
   let dx = point[0] - nextPoint[0]
   let dy = point[1] - nextPoint[1]
   const mag = Math.sqrt(dx * dx + dy * dy) // magnitude
-  if (mag === 0) return 0
+  if (!mag) return [0, 0]
   else if (perpendicular) return [-dy / mag, dx / mag]
   else return [dx / mag, dy / mag]
 }
