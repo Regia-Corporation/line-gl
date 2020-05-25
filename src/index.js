@@ -9,9 +9,9 @@ export type Line = {
 type Point = [number, number]
 
 function drawLine (points: Array<Point>, dashed?: boolean = false): Line {
-  const ll = points.length - 1
+  const ll = points.length
   // corner case: Theres less than 2 points in the array
-  if (ll < 1) return { prev: [], curr: [], next: [], lengthSoFar: [] }
+  if (ll < 2) return { prev: [], curr: [], next: [], lengthSoFar: [] }
 
   const prev = [...points[0]]
   const curr = [...points[0]]
@@ -38,7 +38,7 @@ function drawLine (points: Array<Point>, dashed?: boolean = false): Line {
     prevPoint = point
   }
   // here we actually just store 'next'
-  next.push(...points[ll])
+  next.push(...points[ll - 1])
 
   return { prev, curr, next, lengthSoFar }
 }
