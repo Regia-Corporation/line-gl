@@ -8,10 +8,24 @@ export type Line = {
 
 type Point = [number, number]
 
-function drawLine (points: Array<Point>, dashed?: boolean = false): Line {
+function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?: number = 0): Line {
   const ll = points.length
   // corner case: Theres less than 2 points in the array
   if (ll < 2) return { prev: [], curr: [], next: [], lengthSoFar: [] }
+
+  // step pre: If maxDistance is not Infinity we need to ensure no point is too far from another
+  if (maxDistance) {
+    let prev: Point, curr: Point
+    prev = points[0]
+    for (let i = 1; i < points.length; i++) {
+      curr = points[i]
+      while (Math.abs(prev[0] - curr[0]) > maxDistance || Math.abs(prev[1] - curr[1]) > maxDistance) {
+        curr = [(prev[0] + curr[0]) / 2, (prev[1] + curr[1]) / 2] // set new current
+        points.splice(i, 0, curr) // store current
+      }
+      prev = curr
+    }
+  }
 
   const prev = [...points[0]]
   const curr = [...points[0]]
