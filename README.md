@@ -1,4 +1,4 @@
-# line-gl [![travis][travis-image]][travis-url] [![npm][npm-image]][npm-url] [![downloads][downloads-image]][downloads-url] [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+# line-gl [![travis][travis-image]][travis-url] [![npm][npm-image]][npm-url] [![downloads][downloads-image]][downloads-url] [![min](https://badgen.net/bundlephobia/min/line-gl)](https://bundlephobia.com/result?p=line-gl) [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
 [travis-image]: https://travis-ci.org/regia-corporation/line-gl.svg?branch=master
 [travis-url]: https://travis-ci.org/regia-corporation/line-gl
@@ -20,7 +20,7 @@ yarn add line-gl
 npm install --save line-gl
 ```
 
-## How to Use
+## Guide
 
 ### Import
 
@@ -34,7 +34,7 @@ const drawLine = require('./lib').default
 ### Use
 
 ```js
-const { vertices, indices } = drawLine([[-1, 1], [-1, -1], [1, -1], [1, 1]], { width: 0.5, join: 'bevel', cap: 'butt' })
+const { prev, curr, next, lengthSoFar } = drawLine([[-1, 1], [-1, -1], [1, -1], [1, 1]], true)
 ```
 
 
@@ -42,28 +42,15 @@ const { vertices, indices } = drawLine([[-1, 1], [-1, -1], [1, -1], [1, 1]], { w
 
 ### Function
 
-drawLine (points: Array<Point>, attributes?: Attributes = {}): null | Line
+drawLine (points: Array<Point>, dashed?: boolean = false): Line
 
 # Types
 
-type Cap = 'butt' | 'square' | 'round'
-
-type Join = 'bevel' | 'miter' | 'round'
-
-type Attributes = {
-  cap?: Cap,
-  join?: Join,
-  width?: number,
-  miterLimit?: number
-}
-
-type Vertices = Array<number>
-
-type Indices = Array<number>
-
 type Line = {
-  vertices: Vertices,
-  indices: Indices
+  prev: Array<number>,
+  curr: Array<number>,
+  next: Array<number>,
+  lengthSoFar: Array<number>
 }
 
 type Point = [number, number]
@@ -72,7 +59,7 @@ type Point = [number, number]
 
 ## ISC License (ISC)
 
-Copyright 2019 <Regia>
+Copyright 2019 <S2>
 Copyright (c) 2004-2010 by Internet Systems Consortium, Inc. ("ISC")
 Copyright (c) 1995-2003 by Internet Software Consortium
 

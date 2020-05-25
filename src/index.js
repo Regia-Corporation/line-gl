@@ -1,261 +1,44 @@
 // @flow
-export type Cap = 'butt' | 'square' | 'round'
-
-export type Join = 'bevel' | 'miter' | 'round'
-
-export type Attributes = {
-  cap?: Cap,
-  join?: Join,
-  miterLimit?: number,
-  maxDistance?: number,
-  dashed?: boolean
-}
-
-export type Vertices = Array<number>
-
-export type Normals = Array<number>
-
-export type Indices = Array<number>
-
-export type LengthSoFar = Array<number>
-
 export type Line = {
-  vertices: Vertices,
-  normals: Normals,
-  indices: Indices,
-  lengthSoFar: LengthSoFar
+  prev: Array<number>,
+  curr: Array<number>,
+  next: Array<number>,
+  lengthSoFar: Array<number>
 }
 
 type Point = [number, number]
 
-export default function drawLine (points: Array<Point>, attributes?: Attributes = {}, offset?: number = 0): null | Line {
-  // trivial reject
-  let pointsIndexSize = points.length - 1
-  if (pointsIndexSize < 1) { return null }
-  // prep values
-  const cap: Cap = attributes.cap || 'butt'
-  const join: Join = attributes.join || 'bevel'
-  const miterLimit: number = (attributes.miterLimit && attributes.miterLimit < 15) ? attributes.miterLimit : 10
-  const maxDistance: number = attributes.maxDistance || 0
-  const dashed: boolean = (attributes.dashed) ? true : false
-  const vertices: Vertices = []
-  const normals: Normals = []
-  const indices: Indices = []
-  const lengthSoFar: LengthSoFar = []
-  let lineLength = 0
-  const closed = points[0][0] === points[pointsIndexSize][0] && points[0][1] === points[pointsIndexSize][1]
-  // prep the initial inner and outer points/indexes and create caps if necessary
-  let ccw: boolean, curNormal: Point, nextNormal: Point, currInnerIndex: number,
-    currOuterIndex: number, nextInnerIndex: number, nextOuterIndex: number,
-    prevNormal: Point, currIndex: number, prevIndex: number, nextIndex: number,
-    capNormal: Point
-  let len = 0
+export default function drawLine (points: Array<Point>, dashed?: boolean = false): Line {
+  const ll = points.length - 1
+  // corner case: Theres less than 2 points in the array
+  if (ll < 1) return { prev: [], curr: [], next: [], lengthSoFar: [] }
 
-  // step pre: If maxDistance is not Infinity we need to ensure no point is too far from another
-  if (maxDistance) {
-    let prev: Point, curr: Point
-    prev = points[0]
-    for (let i = 1; i < points.length; i++) {
-      curr = points[i]
-      while (Math.abs(prev[0] - curr[0]) > maxDistance || Math.abs(prev[1] - curr[1]) > maxDistance) {
-        curr = [(prev[0] + curr[0]) / 2, (prev[1] + curr[1]) / 2] // set new current
-        points.splice(i, 0, curr) // store current
-      }
-      prev = curr
-    }
+  const prev = [...points[0]]
+  const curr = [...points[0]]
+  const next = []
+  const lengthSoFar = [0]
+  let curLength = 0
+  let prevPoint = points[0]
+
+  for (let i = 1; i < ll; i++) {
+    // get the next point
+    const point = points[i]
+    // move on if duplicate point
+    if (prevPoint[0] === point[0] && prevPoint[1] === point[1]) continue
+    // store the next pair
+    next.push(...point)
+    // store the point as the next "start"
+    curr.push(...point)
+    // store the previous point
+    prev.push(...prevPoint)
+    // build the lengthSoFar
+    if (dashed) curLength += Math.sqrt(Math.pow(point[0] - prevPoint[0], 2) + Math.pow(point[1] - prevPoint[1], 2))
+    lengthSoFar.push(curLength)
+    // store the old point
+    prevPoint = point
   }
+  // here we actually just store 'next'
+  next.push(...points[ll])
 
-  // update length to reflect changes made by pre-step
-  pointsIndexSize = points.length - 1
-
-  // step 1: Just do the individual lines:
-  for (let i = 0; i < pointsIndexSize; i++) {
-    curNormal = getVector(points[i], points[i + 1])
-    nextNormal = getVector(points[i + 1], points[i])
-    // save the points vertices
-    currInnerIndex = saveVertexVectorPair(points[i], curNormal, true, vertices, normals)
-    currOuterIndex = saveVertexVectorPair(points[i], curNormal, false, vertices, normals)
-    nextInnerIndex = saveVertexVectorPair(points[i + 1], nextNormal, true, vertices, normals)
-    nextOuterIndex = saveVertexVectorPair(points[i + 1], nextNormal, false, vertices, normals)
-    // store points
-    indices.push(
-      currOuterIndex + offset, currInnerIndex + offset, nextOuterIndex + offset,
-      nextOuterIndex + offset, nextInnerIndex + offset, currOuterIndex + offset
-    )
-    // set new length
-    if (dashed) {
-      lengthSoFar.push(lineLength, lineLength)
-      let deltaX = points[i + 1][0] - points[i][0]
-      let deltaY = points[i + 1][1] - points[i][1]
-      lineLength += Math.sqrt((deltaX * deltaX) + (deltaY * deltaY))
-      lengthSoFar.push(lineLength, lineLength)
-    }
-  }
-
-  // Step 2: Edges
-  for (let i = 1; i < pointsIndexSize; i++) {
-    const ccw = isCCW(points[i - 1], points[i], points[i + 1])
-    prevNormal = getVector(points[i], points[i - 1])
-    nextNormal = getVector(points[i + 1], points[i])
-    if (!ccw) { // invert early for rounding
-      prevNormal = [-prevNormal[0], -prevNormal[1]]
-      nextNormal = [-nextNormal[0], -nextNormal[1]]
-    }
-    currIndex = saveVertexVectorPair(points[i], [0, 0], false, vertices, normals)
-    prevIndex = saveVertexVectorPair(points[i], prevNormal, false, vertices, normals)
-    nextIndex = saveVertexVectorPair(points[i], nextNormal, false, vertices, normals)
-    if (dashed) {
-      let len = lengthSoFar[i * 4 - 2]
-      lengthSoFar.push(len, len, len)
-    }
-    if (join === 'round') {
-      let segmentCount = rounding(points[i], currIndex, prevIndex, nextIndex, prevNormal, nextNormal, vertices, normals, indices, offset)
-      segmentCount--
-      if (dashed) {
-        let len = lengthSoFar[i * 4 - 2]
-        for (let s = 0; s < segmentCount; s++) lengthSoFar.push(len)
-      }
-    } else { // bevel
-      // bevel is a guarantee
-      if (ccw) indices.push(prevIndex + offset, nextIndex + offset, currIndex + offset)
-      else indices.push(currIndex + offset, nextIndex + offset, prevIndex + offset)
-      // TODO
-      if (join === 'miter') {
-
-      }
-    }
-  }
-
-  // caps
-  if (!closed && cap !== 'butt') {
-    // first cap
-    prevNormal = getVector(points[0], points[1])
-    currIndex = saveVertexVectorPair(points[0], [0, 0], false, vertices, normals)
-    prevIndex = saveVertexVectorPair(points[0], prevNormal, true, vertices, normals)
-    nextIndex = saveVertexVectorPair(points[0], prevNormal, false, vertices, normals)
-    if (dashed) lengthSoFar.push(0, 0, 0)
-    capNormal = getVector(points[0], points[1], false)
-    if (cap === 'square') {
-      squareCap(capNormal, prevIndex, nextIndex, vertices, normals, indices, offset)
-    } else if (cap === 'round') {
-      let segmentCount = rounding(points[0], currIndex, prevIndex, nextIndex, [-prevNormal[0], -prevNormal[1]], prevNormal, vertices, normals, indices, offset, capNormal)
-      segmentCount--
-      if (dashed) for (let s = 0; s < segmentCount; s++) lengthSoFar.push(0)
-    }
-    // second cap
-    prevNormal = getVector(points[pointsIndexSize], points[pointsIndexSize - 1])
-    currIndex = saveVertexVectorPair(points[pointsIndexSize], [0, 0], false, vertices, normals)
-    prevIndex = saveVertexVectorPair(points[pointsIndexSize], prevNormal, true, vertices, normals)
-    nextIndex = saveVertexVectorPair(points[pointsIndexSize], prevNormal, false, vertices, normals)
-    capNormal = getVector(points[pointsIndexSize], points[pointsIndexSize - 1], false)
-    if (dashed) {
-      let len = lengthSoFar[pointsIndexSize * 4 - 2]
-      lengthSoFar.push(len, len, len)
-    }
-    if (cap === 'square') {
-      squareCap(capNormal, prevIndex, nextIndex, vertices, normals, indices, offset)
-    } else if (cap === 'round') {
-      let segmentCount = rounding(points[pointsIndexSize], currIndex, prevIndex, nextIndex, [-prevNormal[0], -prevNormal[1]], prevNormal, vertices, normals, indices, offset, capNormal)
-      segmentCount--
-      if (dashed) {
-        let len = lengthSoFar[pointsIndexSize * 4 - 2]
-        for (let s = 0; s < segmentCount; s++) lengthSoFar.push(len)
-      }
-    }
-  } else { // just a join
-
-  }
-
-  return { vertices, normals, indices, lengthSoFar }
-}
-
-function getVector (point: Point, nextPoint: Point, perpendicular: boolean = true): Point {
-  let dx = point[0] - nextPoint[0]
-  let dy = point[1] - nextPoint[1]
-  const mag = Math.sqrt(dx * dx + dy * dy) // magnitude
-  if (!mag) return [0, 0]
-  else if (perpendicular) return [-dy / mag, dx / mag]
-  else return [dx / mag, dy / mag]
-}
-
-function saveVertexVectorPair (point: Point, vector: Point, invert: boolean, vertices: Vertices, normals: Normals): number {
-  vertices.push(...point)
-  if (invert) normals.push(...vector)
-  else normals.push(-vector[0], -vector[1])
-
-  return vertices.length / 2 - 1 // return the index at the first value (x)
-}
-
-function isCCW (p1: Point, p2: Point, p3: Point): boolean {
-  const val = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1])
-
-  if (val === 0) return true // colinear
-  return (val > 0) ? false : true // clock or counterclock wise
-}
-
-function isSameNormal (previousNormal: Point, nextNormal: Point): boolean {
-  if (previousNormal[0] + nextNormal[0] === 0 && previousNormal[1] + nextNormal[1] === 0) return true
-  return false
-}
-
-function squareCap (vector: Point, innerIndex: number, outerIndex: number, vertices: Vertices, normals: Normals, indices: Indices, offset: number) {
-  // create the next 2 points
-  const currentPoint = [vertices[innerIndex * 2], vertices[innerIndex * 2 + 1]]
-  // build new "normals"
-  const newVectorInner = [-vector[0] + normals[innerIndex * 2], -vector[1] + normals[innerIndex * 2 + 1]]
-  const newVectorOuter = [-vector[0] + normals[outerIndex * 2], -vector[1] + normals[outerIndex * 2 + 1]]
-  // save the next two points
-  const innerNextIndex = saveVertexVectorPair(currentPoint, newVectorInner, false, vertices, normals)
-  const outerNextIndex = saveVertexVectorPair(currentPoint, newVectorOuter, false, vertices, normals)
-  // push the two triangles into the indices
-  indices.push(
-    outerIndex + offset, innerNextIndex + offset, innerIndex + offset,
-    innerIndex + offset, innerNextIndex + offset, outerNextIndex + offset
-  )
-}
-
-function rounding (centerPoint: Point, centerPointIndex: number, innerIndex: number,
-  outerIndex: number, innerNormal: Point, outerNormal: Point, vertices: Vertices,
-  normals: Normals, indices: Indices, offset: number, capNormal: Point) {
-  // get the angles of the two starting positions
-  let startAngle = Math.atan2(innerNormal[1], innerNormal[0])
-  let endAngle = Math.atan2(outerNormal[1], outerNormal[0])
-  if (startAngle === endAngle) return
-  // this means it's an end cap and we need to figure out if we need to swap start and end angles
-  let angleDiff = endAngle - startAngle
-  // join is ALWAYS an acute angle, so if we don't see that, we are building on the wrong side
-  // EPSILON is 0.0001, this is to ensure lossy numbers don't screw up the rounding
-  if (angleDiff > Math.PI + 0.0001) angleDiff -= Math.PI * 2
-  else if (angleDiff < -Math.PI - 0.0001) angleDiff += Math.PI * 2
-  // if an end cap, let's make sure the rounding is on the right side
-  if (capNormal && isBetween(startAngle, endAngle, Math.atan2(capNormal[1], capNormal[0]))) angleDiff = -angleDiff
-  // create the segment size
-  const segmentCount = Math.abs(angleDiff) * 5 >> 0
-  // now we have our increment size
-  const angleIncrement = angleDiff / segmentCount
-  // move down one after creating angleIncrement to ensure we don't reinput outterIndex
-  let nextIndex: number, nextVector: Point
-  for (let i = 1; i < segmentCount; i++) {
-    // create the next point in the triangle, the first will always have been created
-    nextVector = [Math.cos(startAngle + angleIncrement * i), Math.sin(startAngle + angleIncrement * i)]
-    nextIndex = saveVertexVectorPair(centerPoint, nextVector, false, vertices, normals)
-    if (angleIncrement > 0) indices.push(innerIndex + offset, nextIndex + offset, centerPointIndex + offset)
-    else indices.push(nextIndex + offset, innerIndex + offset, centerPointIndex + offset)
-    // update innerIndex as we revolve
-    innerIndex = nextIndex
-  }
-  // create the last triangle
-  if (nextIndex) {
-    if (angleIncrement > 0) indices.push(centerPointIndex + offset, nextIndex + offset, outerIndex + offset)
-    else indices.push(centerPointIndex + offset, outerIndex + offset, nextIndex + offset)
-  }
-  // return segmentCount for dashed lines
-  return segmentCount
-}
-
-function isBetween (a: number, b: number, num: number): boolean {
-  const min = Math.min(a, b)
-  const max = Math.max(a, b)
-
-  return num > min && num < max
+  return { prev, curr, next, lengthSoFar }
 }
