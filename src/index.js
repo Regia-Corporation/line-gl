@@ -9,7 +9,7 @@ export type Line = {
 type Point = [number, number]
 
 function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?: number = 0): Line {
-  const ll = points.length
+  let ll = points.length
   // corner case: Theres less than 2 points in the array
   if (ll < 2) return { prev: [], curr: [], next: [], lengthSoFar: [] }
 
@@ -25,6 +25,8 @@ function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?:
       }
       prev = curr
     }
+    // update length
+    ll = points.length
   }
 
   const prev = [...points[0]]
