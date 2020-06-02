@@ -7,8 +7,23 @@ const featureCollection = {
 }
 
 // const featureCollectionInput = JSON.parse(fs.readFileSync('./featureCollections/holesTest.json', 'utf8'))
-const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], false, 0.5)
+// const data = drawLine([[0, -1], [0, 0], [0, 1], [0, 2], [1, 3], [2, 4]], false, 0.5)
+// const data = drawLine([[-2, 0], [-1, 1], [0, 0], [1, 1], [2, 0]])
+// const data = drawLine([[-2, 0], [-3, 3], [-4, 7], [-5, 10], [-6, 7]])
+// const data = drawLine([[0, 0], [-1, 0]], false)
+// const data = drawLine([[0, 0], [1, 0]], false)
+// const data = drawLine([[0, 0], [0, -1]], false)
+// const data = drawLine([[0, 0], [0, 1]], false)
+// const data = drawLine([[0, 0], [1, 1], [2, 2]], false)
+// const data = drawLine([[0, 0], [-1, -1], [-2, -2]], false)
+// const data = drawLine([[0, 0], [-1, 1]], false)
+// const data = drawLine([[0, 0], [1, -1]], false)
 // const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], true)
+
+// const data = drawLine([[0, 0], [-1, 1], [-1.5, 2], [-2, 3], [-1.5, 4]], false)
+// const arr = [[0, 0], [0, -1], [-0.5, -2], [-1.5, -3], [-3, -4], [-5, -4]]
+const arr = [[0, 0], [-1, 1], [0, 2], [1, 1], [0, 0]]
+const data = drawLine(arr, false)
 
 // console.time('line')
 const { prev, curr, next, lengthSoFar } = data
@@ -89,7 +104,7 @@ for (let i = 0, pl = curr.length; i < pl; i += 2) {
   let dx = nextX - currX
   let dy = nextY - currY
   let mag = Math.sqrt(dx * dx + dy * dy)
-  let currNormal = [-dy / mag, dx / mag]
+  let currNormal = mag ? [-dy / mag, dx / mag] : [0, 0]
 
   // step 2: draw the quad
   let feature = {
@@ -128,7 +143,7 @@ for (let i = 0, pl = curr.length; i < pl; i += 2) {
   dx = currX - prevX
   dy = currY - prevY
   mag = Math.sqrt(dx * dx + dy * dy)
-  let prevNormal = [-dy / mag, dx / mag]
+  let prevNormal = mag ? [-dy / mag, dx / mag] : [0, 0]
 
   if (isCCW([prevX, prevY], [currX, currY], [nextX, nextY])) {
     prevNormal = [-prevNormal[0], -prevNormal[1]]

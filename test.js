@@ -36,13 +36,13 @@ const data = drawLine([[0, 1], [3, 1], [1, 0], [3, 0], [4, -6]], { join: 'bevel'
 // const data = drawLine([[-2, 0], [-1, 1], [0, 0]], { width: 0.5, join: 'round', cap: 'round' })
 
 // const data = drawLine([[0, 0], [-1, 0]])
-// const data = drawLine([[0, 0], [1, 0]], { width: 0.5, join: 'round', cap: 'round' })
-// const data = drawLine([[0, 0], [0, -1]], { width: 0.5, join: 'round', cap: 'round' })
-// const data = drawLine([[0, 0], [0, 1]], { width: 0.5, join: 'round', cap: 'round' })
-// const data = drawLine([[0, 0], [1, 1]], { width: 0.5, join: 'round', cap: 'round' })
-// const data = drawLine([[0, 0], [-1, -1]], { width: 0.5, join: 'round', cap: 'round' })
-// const data = drawLine([[0, 0], [-1, 1]], { width: 0.5, join: 'round', cap: 'round' })
-// const data = drawLine([[0, 0], [1, -1]], { width: 0.5, join: 'round', cap: 'round' })
+// const data = drawLine([[0, 0], [1, 0]])
+// const data = drawLine([[0, 0], [0, -1]])
+// const data = drawLine([[0, 0], [0, 1]])
+// const data = drawLine([[0, 0], [1, 1]])
+// const data = drawLine([[0, 0], [-1, -1]])
+// const data = drawLine([[0, 0], [-1, 1]])
+// const data = drawLine([[0, 0], [1, -1]])
 // const { vertices, indices } = data
 
 console.time('line')

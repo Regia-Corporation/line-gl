@@ -13,6 +13,9 @@ function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?:
   // corner case: Theres less than 2 points in the array
   if (ll < 2) return { prev: [], curr: [], next: [], lengthSoFar: [] }
 
+  // check line type
+  const closed: boolean = (points[0][0] === points[ll - 1][0] && points[0][1] === points[ll - 1][1])
+
   // step pre: If maxDistance is not Infinity we need to ensure no point is too far from another
   if (maxDistance) {
     let prev: Point, curr: Point
@@ -55,6 +58,12 @@ function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?:
   }
   // here we actually just store 'next'
   next.push(...points[ll - 1])
+  // if closed, add a 'final' point for the connector piece
+  if (closed) {
+    prev.push(...points[ll - 2])
+    curr.push(...points[ll - 1])
+    next.push(...points[1])
+  }
 
   return { prev, curr, next, lengthSoFar }
 }
