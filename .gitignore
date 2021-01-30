@@ -2,3 +2,6 @@ node_modules
 lib
 featureCollections
 backup
+glTestOut.json
+linesGLtest.json
+out.json

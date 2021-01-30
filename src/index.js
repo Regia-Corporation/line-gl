@@ -8,10 +8,13 @@ export type Line = {
 
 type Point = [number, number]
 
-function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?: number = 0): Line {
+type Cap = 'butt' | 'round' | 'square'
+
+function drawLine (points: Array<Point>, cap?: Cap = 'butt', dashed?: boolean = false, maxDistance?: number = 0): Line {
   let ll = points.length
   // corner case: Theres less than 2 points in the array
-  if (ll < 2) return { prev: [], curr: [], next: [], lengthSoFar: [] }
+  // if (ll < 2) return { prev: [], curr: [], next: [], lengthSoFar: [] }
+  if (ll < 2) return { prev: [], curr: [], next: [] }
 
   // check line type
   const closed: boolean = (points[0][0] === points[ll - 1][0] && points[0][1] === points[ll - 1][1])
@@ -35,8 +38,8 @@ function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?:
   const prev = [...points[0]]
   const curr = [...points[0]]
   const next = []
-  const lengthSoFar = [0]
-  let curLength = 0
+  // const lengthSoFar = [0]
+  // let curLength = 0
   let prevPoint = points[0]
 
   for (let i = 1; i < ll; i++) {
@@ -51,8 +54,8 @@ function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?:
     // store the previous point
     prev.push(...prevPoint)
     // build the lengthSoFar
-    if (dashed) curLength += Math.sqrt(Math.pow(point[0] - prevPoint[0], 2) + Math.pow(point[1] - prevPoint[1], 2))
-    lengthSoFar.push(curLength)
+    // if (dashed) curLength += Math.sqrt(Math.pow(point[0] - prevPoint[0], 2) + Math.pow(point[1] - prevPoint[1], 2))
+    // lengthSoFar.push(curLength)
     // store the old point
     prevPoint = point
   }
@@ -65,7 +68,17 @@ function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?:
     next.push(...points[1])
   }
 
-  return { prev, curr, next, lengthSoFar }
+  if (cap !== 'butt') {
+    prev.unshift(prev[0], prev[1])
+    curr.unshift(curr[0], curr[1])
+    next.unshift(next[0], next[1])
+    let len = prev.length - 1
+    prev.push(prev[len - 1], prev[len])
+    curr.push(curr[len - 1], curr[len])
+    next.push(next[len - 1], next[len])
+  }
+
+  return { prev, curr, next }
 }
 
 exports.default = exports.drawLine = drawLine

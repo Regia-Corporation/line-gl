@@ -5,4 +5,8 @@ backup
 test
 test.js
 testAngled.js
+testGL.js
+out.json
+glTestOut.json
+linesGLtest.json
 out.json
