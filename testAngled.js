@@ -135,7 +135,7 @@ const arr = [
   ]
 ]
 
-const data = drawLine(arr, 'round')
+const data = drawLine(arr)
 
 // console.time('line')
 const { prev, curr, next, lengthSoFar } = data
