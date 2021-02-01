@@ -135,7 +135,7 @@ const arr = [
   ]
 ]
 
-const data = drawLine(arr)
+const data = drawLine(arr, 'round')
 
 // console.time('line')
 const { prev, curr, next, lengthSoFar } = data
@@ -200,26 +200,79 @@ const width = 0.01
 // const quad2 = [[-1, -1], [1, 1], [1, 1]]
 
 // BEST
-const quad1 = [-1, -1, 1] // [multiplier, curr], [multiplier, next], [multiplier, next]
-const quad2 = [-1, 1, 1] // [multiplier, curr], [multiplier, next], [multiplier, curr]
+// const quad1 = [-1, -1, 1] // [multiplier, curr], [multiplier, next], [multiplier, next]
+// const quad2 = [-1, 1, 1] // [multiplier, curr], [multiplier, next], [multiplier, curr]
+
+let currX, currY, nextX, nextY, prevX, prevY, dx, dy, mag, currNormal, prevNormal, feature
 
 for (let i = 0, pl = curr.length; i < pl; i += 2) {
   // grab the variables
-  const currX = curr[i]
-  const currY = curr[i + 1]
-  const nextX = next[i]
-  const nextY = next[i + 1]
-  const prevX = prev[i]
-  const prevY = prev[i + 1]
+  currX = curr[i]
+  currY = curr[i + 1]
+  nextX = next[i]
+  nextY = next[i + 1]
+  prevX = prev[i]
+  prevY = prev[i + 1]
 
   // step 1: find the normal
-  let dx = nextX - currX
-  let dy = nextY - currY
-  let mag = Math.sqrt(dx * dx + dy * dy)
-  let currNormal = mag ? [-dy / mag, dx / mag] : [0, 0]
+  dx = nextX - currX
+  dy = nextY - currY
+  mag = Math.sqrt(dx * dx + dy * dy)
+  currNormal = mag ? [-dy / mag, dx / mag] : [0, 0]
+
+  // mid-state if curr == prev
+  if (currX === prevX && currY === prevY) {
+    const norm = [-dx / mag, -dy / mag]
+    const posX = currX + width * norm[0]
+    const posY = currY + width * norm[1]
+
+    feature = {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [currX + width * currNormal[0] * -1, currY + width * currNormal[1] * -1],
+          [posX + width * currNormal[0] * -1, posY + width * currNormal[1] * -1],
+          [posX + width * currNormal[0] * 1, posY + width * currNormal[1] * 1],
+          [currX + width * currNormal[0] * -1, currY + width * currNormal[1] * -1]
+        ]]
+      }
+    }
+
+    featureCollection.features.push(feature)
+  }
+
+  // mid-state if curr == next
+  if (currX === nextX && currY === nextY) {
+    const midDx = currX - prevX
+    const midDy = currY - prevY
+    const midMag = Math.sqrt(midDx * midDx + midDy * midDy)
+    const norm = midMag ? [midDx / midMag, midDy / midMag] : [0, 0]
+    const perp = [-norm[1], norm[0]]
+    console.log('norm', norm)
+    const posX = currX + width * norm[0]
+    const posY = currY + width * norm[1]
+
+    feature = {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [currX + width * perp[0] * -1, currY + width * perp[1] * -1],
+          [posX + width * perp[0] * -1, posY + width * perp[1] * -1],
+          [currX + width * perp[0] * 1, currY + width * perp[1] * 1],
+          [currX + width * perp[0] * -1, currY + width * perp[1] * -1]
+        ]]
+      }
+    }
+
+    featureCollection.features.push(feature)
+  }
 
   // step 2: draw the quad
-  let feature = {
+  feature = {
     type: 'Feature',
     properties: {},
     geometry: {
@@ -255,7 +308,7 @@ for (let i = 0, pl = curr.length; i < pl; i += 2) {
   dx = currX - prevX
   dy = currY - prevY
   mag = Math.sqrt(dx * dx + dy * dy)
-  let prevNormal = mag ? [-dy / mag, dx / mag] : [0, 0]
+  prevNormal = mag ? [-dy / mag, dx / mag] : [0, 0]
 
   if (isCCW([prevX, prevY], [currX, currY], [nextX, nextY])) {
     prevNormal = [-prevNormal[0], -prevNormal[1]]

@@ -10,7 +10,7 @@ type Point = [number, number]
 
 type Cap = 'butt' | 'round' | 'square'
 
-function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?: number = 0): Line {
+function drawLine (points: Array<Point>, cap?: Cap = 'butt', dashed?: boolean = false, maxDistance?: number = 0): Line {
   let ll = points.length
   // corner case: Theres less than 2 points in the array
   // if (ll < 2) return { prev: [], curr: [], next: [], lengthSoFar: [] }
@@ -66,6 +66,19 @@ function drawLine (points: Array<Point>, dashed?: boolean = false, maxDistance?:
     prev.push(...points[ll - 2])
     curr.push(...points[ll - 1])
     next.push(...points[1])
+  }
+
+  // if not a butt cap, we add a duplicate of beginning and end
+  if (cap !== 'butt') {
+    // start cap
+    prev.unshift(next[0], next[1])
+    curr.unshift(curr[0], curr[1])
+    next.unshift(prev[2], prev[3])
+    // end cap
+    let len = curr.length - 1
+    prev.push(next[len - 1], next[len])
+    curr.push(curr[len - 1], curr[len])
+    next.push(prev[len - 1], prev[len])
   }
 
   return { prev, curr, next }
